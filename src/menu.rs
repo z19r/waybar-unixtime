@@ -1,10 +1,38 @@
 use crate::config::Custom;
-use crate::formats::{Group, SPECS};
+use crate::formats::{self, SPECS};
 
 fn xml_escape(raw: &str) -> String {
     raw.replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
+}
+
+const SEPARATOR: &str = "    <child>\n\
+    \x20     <object class=\"GtkSeparatorMenuItem\"/>\n\
+    \x20   </child>\n";
+
+/// A menu item whose label is a Pango-markup GtkLabel: colored
+/// badge chip + format name, like the UnixTime panel rows.
+fn item(id: &str, badge: &str, color: &str, label: &str) -> String {
+    let markup = format!(
+        "{chip}  {label}",
+        chip = formats::badge_markup(badge, color),
+        label = xml_escape(label),
+    );
+    format!(
+        "    <child>\n\
+         \x20     <object class=\"GtkMenuItem\" id=\"{id}\">\n\
+         \x20       <child>\n\
+         \x20         <object class=\"GtkLabel\">\n\
+         \x20           <property name=\"label\">{markup}</property>\n\
+         \x20           <property name=\"use-markup\">True</property>\n\
+         \x20           <property name=\"xalign\">0</property>\n\
+         \x20         </object>\n\
+         \x20       </child>\n\
+         \x20     </object>\n\
+         \x20   </child>\n",
+        markup = xml_escape(&markup),
+    )
 }
 
 /// GtkBuilder XML for waybar's `menu-file`, one item per format.
@@ -19,48 +47,21 @@ pub fn xml(customs: &[Custom]) -> String {
     for spec in SPECS {
         if group != Some(spec.group) {
             if group.is_some() {
-                out.push_str(
-                    "    <child>\n\
-                     \x20     <object class=\"GtkSeparatorMenuItem\"/>\n\
-                     \x20   </child>\n",
-                );
+                out.push_str(SEPARATOR);
             }
             group = Some(spec.group);
         }
-        let title = match spec.group {
-            Group::Timestamp => "copy",
-            Group::Date => "copy",
-        };
-        out.push_str(&format!(
-            "    <child>\n\
-             \x20     <object class=\"GtkMenuItem\" id=\"{key}\">\n\
-             \x20       <property name=\"label\">{title} {label}\
-             </property>\n\
-             \x20     </object>\n\
-             \x20   </child>\n",
-            key = spec.key,
-            label = spec.label,
-            title = title,
-        ));
+        out.push_str(&item(spec.key, spec.badge, spec.color, spec.label));
     }
     for (index, custom) in customs.iter().enumerate() {
         if index == 0 {
-            out.push_str(
-                "    <child>\n\
-                 \x20     <object class=\"GtkSeparatorMenuItem\"/>\n\
-                 \x20   </child>\n",
-            );
+            out.push_str(SEPARATOR);
         }
-        out.push_str(&format!(
-            "    <child>\n\
-             \x20     <object class=\"GtkMenuItem\" \
-             id=\"custom-{index}\">\n\
-             \x20       <property name=\"label\">copy {label}\
-             </property>\n\
-             \x20     </object>\n\
-             \x20   </child>\n",
-            index = index,
-            label = xml_escape(&custom.name),
+        out.push_str(&item(
+            &format!("custom-{index}"),
+            "FMT",
+            formats::BADGE_CUSTOM,
+            &custom.name,
         ));
     }
     out.push_str("  </object>\n</interface>\n");
@@ -132,7 +133,10 @@ mod tests {
         assert!(out.contains("GtkMenu"));
         assert!(out.contains("GtkSeparatorMenuItem"));
         assert!(out.contains("id=\"custom-0\""));
-        assert!(out.contains("Logs &amp; Tags"));
+        // label is escaped for pango, then again for XML
+        assert!(out.contains("Logs &amp;amp; Tags"));
+        assert!(out.contains("use-markup"));
+        assert!(out.contains("&lt;span background="));
     }
 
     #[test]

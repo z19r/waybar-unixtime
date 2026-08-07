@@ -23,7 +23,7 @@ impl Line {
         Line {
             text: formats::render(key, utc, local)
                 .unwrap_or_else(|| String::from("?")),
-            tooltip: formats::tooltip(utc, local, &config::load().customs),
+            tooltip: formats::tooltip(utc, local, &config::load().customs, key),
             class: state::class(key),
         }
     }

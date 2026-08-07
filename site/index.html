@@ -201,7 +201,15 @@ your omarchy theme. Open source, one tiny Rust binary.">
   .panel .row:hover {
     background: var(--bg); border-left-color: var(--accent);
   }
-  .panel .row .lbl { color: var(--fg); }
+  .panel .row .lbl {
+    color: var(--fg); display: flex;
+    align-items: center; gap: 10px;
+  }
+  .panel .chip {
+    color: #fff; font-size: .62rem; font-weight: 700;
+    letter-spacing: .04em; padding: 2px 7px; border-radius: 5px;
+    min-width: 26px; text-align: center;
+  }
   .panel .row .val {
     color: var(--dim); font-variant-numeric: tabular-nums;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -504,36 +512,41 @@ THEMES.forEach((theme, index) => {
 
 /* ── live format panel ───────────────────────────────────── */
 const pad = (n, w) => String(n).padStart(w || 2, "0");
+const BADGE = {
+  TS: "#3b82f6", ISO: "#c026d3", EU: "#8b5cf6", US: "#ef4444",
+  UK: "#f97316", JP: "#14b8a6", RFC: "#64748b", UNIX: "#64748b",
+};
 const FORMATS = [
   ["TIMESTAMP", null],
-  ["Seconds", (d) => Math.floor(d.getTime() / 1000)],
-  ["Milliseconds", (d) => d.getTime()],
-  ["Microseconds", (d) => d.getTime() + "000"],
-  ["Nanoseconds", (d) => d.getTime() + "000000"],
+  ["Seconds", (d) => Math.floor(d.getTime() / 1000), "TS"],
+  ["Milliseconds", (d) => d.getTime(), "TS"],
+  ["Microseconds", (d) => d.getTime() + "000", "TS"],
+  ["Nanoseconds", (d) => d.getTime() + "000000", "TS"],
   ["DATE FORMATS", null],
-  ["ISO 8601 UTC", (d) => d.toISOString().slice(0, 19) + "Z"],
+  ["ISO 8601 UTC", (d) => d.toISOString().slice(0, 19) + "Z", "ISO"],
   ["ISO 8601 local", (d) =>
     `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
     ` ${pad(d.getHours())}:${pad(d.getMinutes())}` +
-    `:${pad(d.getSeconds())}`],
+    `:${pad(d.getSeconds())}`, "ISO"],
   ["ISO 8601 date", (d) =>
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`],
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+    "ISO"],
   ["European", (d) =>
     `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}` +
     ` ${pad(d.getHours())}:${pad(d.getMinutes())}` +
-    `:${pad(d.getSeconds())}`],
-  ["US", (d) => d.toLocaleString("en-US")],
-  ["British", (d) => d.toLocaleString("en-GB")],
+    `:${pad(d.getSeconds())}`, "EU"],
+  ["US", (d) => d.toLocaleString("en-US"), "US"],
+  ["British", (d) => d.toLocaleString("en-GB"), "UK"],
   ["Japanese", (d) =>
     `${d.getFullYear()}年${pad(d.getMonth() + 1)}月` +
     `${pad(d.getDate())}日 ${pad(d.getHours())}時` +
-    `${pad(d.getMinutes())}分`],
-  ["RFC 2822", (d) => d.toUTCString()],
+    `${pad(d.getMinutes())}分`, "JP"],
+  ["RFC 2822", (d) => d.toUTCString(), "RFC"],
 ];
 
 const panel = document.getElementById("fmt-panel");
 const liveRows = [];
-FORMATS.forEach(([label, fn]) => {
+FORMATS.forEach(([label, fn, badge]) => {
   if (!fn) {
     const sect = document.createElement("div");
     sect.className = "sect";
@@ -545,7 +558,14 @@ FORMATS.forEach(([label, fn]) => {
   row.className = "row";
   const lbl = document.createElement("span");
   lbl.className = "lbl";
-  lbl.textContent = label;
+  if (badge) {
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.style.background = BADGE[badge];
+    chip.textContent = badge;
+    lbl.appendChild(chip);
+  }
+  lbl.appendChild(document.createTextNode(label));
   const val = document.createElement("span");
   val.className = "val";
   row.append(lbl, val);

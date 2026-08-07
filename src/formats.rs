@@ -12,86 +12,72 @@ pub struct Spec {
     pub key: &'static str,
     pub label: &'static str,
     pub group: Group,
+    /// Badge chip text, like the UnixTime app (TS / ISO / EU / …).
+    pub badge: &'static str,
+    /// Badge chip color.
+    pub color: &'static str,
+}
+
+pub const BADGE_TS: &str = "#3b82f6";
+pub const BADGE_ISO: &str = "#c026d3";
+pub const BADGE_EU: &str = "#8b5cf6";
+pub const BADGE_US: &str = "#ef4444";
+pub const BADGE_UK: &str = "#f97316";
+pub const BADGE_JP: &str = "#14b8a6";
+pub const BADGE_MISC: &str = "#64748b";
+pub const BADGE_CUSTOM: &str = "#d946ef";
+
+macro_rules! spec {
+    ($key:expr, $label:expr, $group:expr, $badge:expr, $color:expr) => {
+        Spec {
+            key: $key,
+            label: $label,
+            group: $group,
+            badge: $badge,
+            color: $color,
+        }
+    };
 }
 
 /// Every built-in format, in panel order.
 pub const SPECS: &[Spec] = &[
-    Spec {
-        key: "seconds",
-        label: "Seconds",
-        group: Group::Timestamp,
-    },
-    Spec {
-        key: "millis",
-        label: "Milliseconds",
-        group: Group::Timestamp,
-    },
-    Spec {
-        key: "micros",
-        label: "Microseconds",
-        group: Group::Timestamp,
-    },
-    Spec {
-        key: "nanos",
-        label: "Nanoseconds",
-        group: Group::Timestamp,
-    },
-    Spec {
-        key: "iso-utc",
-        label: "ISO 8601 UTC",
-        group: Group::Date,
-    },
-    Spec {
-        key: "iso-local",
-        label: "ISO 8601 local",
-        group: Group::Date,
-    },
-    Spec {
-        key: "iso-date",
-        label: "ISO 8601 date",
-        group: Group::Date,
-    },
-    Spec {
-        key: "european",
-        label: "European",
-        group: Group::Date,
-    },
-    Spec {
-        key: "european-short",
-        label: "European (short)",
-        group: Group::Date,
-    },
-    Spec {
-        key: "us",
-        label: "US",
-        group: Group::Date,
-    },
-    Spec {
-        key: "us-short",
-        label: "US (short)",
-        group: Group::Date,
-    },
-    Spec {
-        key: "british",
-        label: "British",
-        group: Group::Date,
-    },
-    Spec {
-        key: "japanese",
-        label: "Japanese",
-        group: Group::Date,
-    },
-    Spec {
-        key: "rfc2822",
-        label: "RFC 2822",
-        group: Group::Date,
-    },
-    Spec {
-        key: "unix-readable",
-        label: "Unix readable",
-        group: Group::Date,
-    },
+    spec!("seconds", "Seconds", Group::Timestamp, "TS", BADGE_TS),
+    spec!("millis", "Milliseconds", Group::Timestamp, "TS", BADGE_TS),
+    spec!("micros", "Microseconds", Group::Timestamp, "TS", BADGE_TS),
+    spec!("nanos", "Nanoseconds", Group::Timestamp, "TS", BADGE_TS),
+    spec!("iso-utc", "ISO 8601 UTC", Group::Date, "ISO", BADGE_ISO),
+    spec!("iso-local", "ISO 8601 local", Group::Date, "ISO", BADGE_ISO),
+    spec!("iso-date", "ISO 8601 date", Group::Date, "ISO", BADGE_ISO),
+    spec!("european", "European", Group::Date, "EU", BADGE_EU),
+    spec!(
+        "european-short",
+        "European (short)",
+        Group::Date,
+        "EU",
+        BADGE_EU
+    ),
+    spec!("us", "US", Group::Date, "US", BADGE_US),
+    spec!("us-short", "US (short)", Group::Date, "US", BADGE_US),
+    spec!("british", "British", Group::Date, "UK", BADGE_UK),
+    spec!("japanese", "Japanese", Group::Date, "JP", BADGE_JP),
+    spec!("rfc2822", "RFC 2822", Group::Date, "RFC", BADGE_MISC),
+    spec!(
+        "unix-readable",
+        "Unix readable",
+        Group::Date,
+        "UNIX",
+        BADGE_MISC
+    ),
 ];
+
+/// A Pango badge chip: colored pill with white text, fixed width
+/// so <tt> columns stay aligned.
+pub fn badge_markup(badge: &str, color: &str) -> String {
+    format!(
+        "<span background=\"{color}\" foreground=\"#ffffff\">\
+         <b> {badge:^4} </b></span>",
+    )
+}
 
 pub fn is_valid_key(key: &str) -> bool {
     key.starts_with("custom:") || SPECS.iter().any(|spec| spec.key == key)
@@ -130,12 +116,36 @@ pub fn render(
     Some(value)
 }
 
-/// Pango tooltip mirroring the UnixTime dropdown: every format with
-/// its live value in labelled sections, plus any custom formats.
+fn section_header(title: &str) -> String {
+    format!(
+        "<span foreground=\"#8a8f98\" size=\"small\">\
+         ─────  <b>{title}</b>  ─────</span>\n",
+    )
+}
+
+fn panel_line(
+    active: bool,
+    badge: &str,
+    color: &str,
+    label: &str,
+    value: &str,
+    width: usize,
+) -> String {
+    let check = if active { "✓" } else { " " };
+    let pad = " ".repeat(width - label.chars().count() + 2);
+    format!(
+        "{check} {chip} {label}{pad}{value}\n",
+        chip = badge_markup(badge, color),
+    )
+}
+
+/// Pango tooltip mirroring the UnixTime dropdown: badge chips,
+/// a ✓ on the active format, live values, and custom formats.
 pub fn tooltip(
     utc: DateTime<Utc>,
     local: DateTime<Local>,
     customs: &[crate::config::Custom],
+    active: &str,
 ) -> String {
     let width = SPECS
         .iter()
@@ -154,20 +164,33 @@ pub fn tooltip(
                 Group::Timestamp => "TIMESTAMP",
                 Group::Date => "DATE FORMATS",
             };
-            out.push_str(&format!("<b>── {title} ──</b>\n"));
+            out.push_str(&section_header(title));
             group = Some(spec.group);
         }
         let value = render(spec.key, utc, local).unwrap_or_default();
-        let pad = " ".repeat(width - spec.label.chars().count() + 2);
-        out.push_str(&format!("{}{}{}\n", spec.label, pad, value));
+        out.push_str(&panel_line(
+            spec.key == active,
+            spec.badge,
+            spec.color,
+            spec.label,
+            &value,
+            width,
+        ));
     }
     if !customs.is_empty() {
-        out.push_str("\n<b>── CUSTOM ──</b>\n");
+        out.push('\n');
+        out.push_str(&section_header("CUSTOM"));
         for custom in customs {
             let key = format!("custom:{}", custom.format);
             let value = render(&key, utc, local).unwrap_or_default();
-            let pad = " ".repeat(width - custom.name.chars().count() + 2);
-            out.push_str(&format!("{}{}{}\n", custom.name, pad, value));
+            out.push_str(&panel_line(
+                key == active,
+                "FMT",
+                BADGE_CUSTOM,
+                &custom.name,
+                &value,
+                width,
+            ));
         }
     }
     out.push_str("</tt>");
@@ -246,9 +269,16 @@ mod tests {
             name: String::from("Deploy tag"),
             format: String::from("%Y%m%d-%H%M"),
         }];
-        let tip = tooltip(utc, local, &customs);
+        let tip = tooltip(utc, local, &customs, "millis");
         assert!(tip.contains("CUSTOM"));
         assert!(tip.contains("Deploy tag"));
+        assert!(tip.contains("✓"));
+        assert!(tip.contains(&badge_markup("TS", BADGE_TS)));
+        let check_line = tip
+            .lines()
+            .find(|line| line.starts_with('✓'))
+            .expect("active line marked");
+        assert!(check_line.contains("Milliseconds"));
         assert!(tip.contains("TIMESTAMP"));
         assert!(tip.contains("DATE FORMATS"));
         for spec in SPECS {

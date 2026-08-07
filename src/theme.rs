@@ -95,9 +95,34 @@ pub fn css(palette: &Palette) -> String {
         \x20 color: @unixtime-accent;\n\
         }}\n\
         \n\
-        tooltip.unixtime {{\n\
+        tooltip {{\n\
         \x20 background: @unixtime-bg;\n\
         \x20 color: @unixtime-fg;\n\
+        \x20 border: 1px solid alpha(@unixtime-accent, 0.5);\n\
+        \x20 border-radius: 12px;\n\
+        }}\n\
+        \n\
+        menu {{\n\
+        \x20 background: @unixtime-bg;\n\
+        \x20 color: @unixtime-fg;\n\
+        \x20 border: 1px solid alpha(@unixtime-accent, 0.5);\n\
+        \x20 border-radius: 12px;\n\
+        \x20 padding: 8px 4px;\n\
+        }}\n\
+        \n\
+        menu menuitem {{\n\
+        \x20 padding: 5px 12px;\n\
+        \x20 border-radius: 8px;\n\
+        \x20 font-family: monospace;\n\
+        }}\n\
+        \n\
+        menu menuitem:hover {{\n\
+        \x20 background: alpha(@unixtime-accent, 0.25);\n\
+        }}\n\
+        \n\
+        menu separator {{\n\
+        \x20 background: alpha(@unixtime-fg, 0.15);\n\
+        \x20 margin: 6px 10px;\n\
         }}\n",
         accent = palette.accent,
         fg = palette.foreground,
