@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"
+  role="img" aria-label="waybar-unixtime logo">
+  <!-- Epoch counter mark: seven-segment "10" over a cursor bar -->
+  <rect width="256" height="256" rx="56" fill="#16161c"/>
+  <rect x="70" y="52" width="22" height="128" rx="11" fill="#c9a554"/>
+  <rect x="118" y="52" width="68" height="128" rx="26" fill="none"
+    stroke="#c9a554" stroke-width="22"/>
+  <rect x="70" y="196" width="116" height="14" rx="7" fill="#6f7462">
+    <animate attributeName="opacity" values="1;1;0;0;1"
+      keyTimes="0;0.45;0.5;0.95;1" dur="1.6s" repeatCount="indefinite"/>
+  </rect>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"
+  role="img" aria-label="waybar-unixtime prompt variant">
+  <!-- Variant B: shell prompt chevron + cursor block -->
+  <rect width="256" height="256" rx="56" fill="#16161c"/>
+  <path d="M64 84l52 44-52 44" fill="none" stroke="#c9a554"
+    stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="140" y="150" width="56" height="24" rx="8" fill="#c9a554"/>
+</svg>

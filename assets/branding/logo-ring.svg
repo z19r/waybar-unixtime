@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"
+  role="img" aria-label="waybar-unixtime ring variant">
+  <!-- Variant C: epoch ring — a dial with no hands, only ticks -->
+  <rect width="256" height="256" rx="56" fill="#16161c"/>
+  <circle cx="128" cy="128" r="72" fill="none" stroke="#c9a554"
+    stroke-width="16" stroke-dasharray="8 20" stroke-linecap="round"/>
+  <circle cx="128" cy="128" r="18" fill="#c9a554"/>
+</svg>

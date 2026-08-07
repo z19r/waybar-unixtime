@@ -1,0 +1,12 @@
+/target
+*.log
+
+# local machine tooling (not part of the open-source project)
+/.claude/
+/.rtk/
+/.aider.conventions.md
+/.windsurfrules
+/CLAUDE.md
+/AGENTS.md
+/STACK-SETUP.md
+/.github/copilot-instructions.md

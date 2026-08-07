@@ -1,0 +1,14 @@
+// Drop into your waybar config's module section.
+{
+  "custom/unixtime": {
+    // Continuous mode: the binary streams one JSON line per tick.
+    "exec": "waybar-unixtime",
+    "return-type": "json",
+    "restart-interval": 1,
+    // Click: copy the current timestamp to the clipboard.
+    "on-click": "waybar-unixtime copy | wl-copy",
+    // Right-click: toggle seconds <-> milliseconds live.
+    "on-click-right": "pkill -USR1 -x waybar-unixtime",
+    "tooltip": true
+  }
+}

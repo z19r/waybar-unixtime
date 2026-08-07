@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>waybar-unixtime — live epoch in your bar</title>
+<meta name="description"
+  content="Live unix timestamps for Waybar on Hyprland, themed by
+your omarchy theme. Open source, one tiny Rust binary.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg
+ xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Crect
+ width='256' height='256' rx='56' fill='%2316161c'/%3E%3Crect x='70'
+ y='52' width='22' height='128' rx='11' fill='%23c9a554'/%3E%3Crect
+ x='118' y='52' width='68' height='128' rx='26' fill='none'
+ stroke='%23c9a554' stroke-width='22'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #16161c;
+    --surface: #1e1e26;
+    --edge: #2c2c36;
+    --fg: #c2c2b0;
+    --dim: #7a7a6e;
+    --accent: #c9a554;
+    --accent-ink: #16161c;
+    --mono: "JetBrains Mono", "Cascadia Code", "Fira Code",
+      ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--mono);
+    line-height: 1.6;
+    transition: background .4s, color .4s;
+  }
+  ::selection { background: var(--accent); color: var(--accent-ink); }
+  a { color: var(--accent); }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 24px; }
+
+  /* ── header ─────────────────────────────────────────────── */
+  header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 20px 0; border-bottom: 1px solid var(--edge);
+  }
+  header svg { width: 34px; height: 34px; flex: none; }
+  header .name { font-weight: 700; letter-spacing: -.02em; }
+  header nav { margin-left: auto; display: flex; gap: 18px; }
+  header nav a {
+    color: var(--dim); text-decoration: none; font-size: .85rem;
+  }
+  header nav a:hover { color: var(--accent); }
+
+  /* ── hero ───────────────────────────────────────────────── */
+  .hero { padding: clamp(56px, 10vw, 120px) 0 48px; }
+  .hero .prompt { color: var(--dim); font-size: .9rem; }
+  .hero h1 {
+    font-size: clamp(1.6rem, 4.5vw, 2.6rem);
+    letter-spacing: -.03em; line-height: 1.15; margin: 10px 0 18px;
+  }
+  .hero h1 em { color: var(--accent); font-style: normal; }
+  .hero p.sub { color: var(--dim); max-width: 56ch; }
+
+  .epoch {
+    margin: 40px 0 8px;
+    background: var(--surface);
+    border: 1px solid var(--edge);
+    border-radius: 14px;
+    padding: 26px 28px;
+    display: flex; flex-wrap: wrap;
+    align-items: baseline; gap: 10px 22px;
+    box-shadow: 0 12px 40px rgb(0 0 0 / .35);
+    cursor: pointer;
+  }
+  .epoch:hover { border-color: var(--accent); }
+  #tick {
+    font-size: clamp(2rem, 7vw, 3.6rem);
+    font-weight: 700; color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .01em;
+  }
+  #tick::after {
+    content: ""; display: inline-block;
+    width: .55em; height: .12em; margin-left: .12em;
+    background: var(--dim); vertical-align: baseline;
+    animation: blink 1.2s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  .epoch .unit { color: var(--dim); font-size: .85rem; }
+  .epoch-hint { color: var(--dim); font-size: .78rem; }
+  #human { color: var(--dim); font-size: .85rem; margin-top: 14px; }
+
+  /* ── theme switcher ─────────────────────────────────────── */
+  .themes {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    margin-top: 34px; align-items: center;
+  }
+  .themes .label { color: var(--dim); font-size: .78rem; }
+  .themes button {
+    font-family: var(--mono); font-size: .78rem;
+    background: var(--surface); color: var(--fg);
+    border: 1px solid var(--edge); border-radius: 999px;
+    padding: 6px 14px 6px 10px; cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+    transition: border-color .15s, transform .15s;
+  }
+  .themes button:hover { transform: translateY(-1px); }
+  .themes button .dot {
+    width: 10px; height: 10px; border-radius: 50%; display: block;
+  }
+  .themes button[aria-pressed="true"] { border-color: var(--accent); }
+
+  /* ── sections ───────────────────────────────────────────── */
+  section { padding: 56px 0; border-top: 1px solid var(--edge); }
+  h2 {
+    font-size: 1.05rem; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--dim); margin-bottom: 28px;
+  }
+  h2::before { content: "## "; color: var(--accent); }
+
+  .grid {
+    display: grid; gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+  .card {
+    background: var(--surface); border: 1px solid var(--edge);
+    border-radius: 12px; padding: 20px;
+  }
+  .card h3 { font-size: .95rem; margin-bottom: 8px; }
+  .card h3 .k { color: var(--accent); }
+  .card p { color: var(--dim); font-size: .85rem; }
+
+  pre {
+    background: var(--surface); border: 1px solid var(--edge);
+    border-radius: 12px; padding: 18px 20px; overflow-x: auto;
+    font-size: .84rem; line-height: 1.7; position: relative;
+  }
+  pre + pre { margin-top: 14px; }
+  pre .c { color: var(--dim); }
+  pre .a { color: var(--accent); }
+  pre .copy {
+    position: absolute; top: 10px; right: 10px;
+    font-family: var(--mono); font-size: .7rem;
+    background: none; border: 1px solid var(--edge);
+    color: var(--dim); border-radius: 6px; padding: 3px 9px;
+    cursor: pointer;
+  }
+  pre .copy:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* ── converter ──────────────────────────────────────────── */
+  .conv { display: grid; gap: 14px; }
+  @media (min-width: 720px) {
+    .conv { grid-template-columns: 1fr 1fr; }
+  }
+  .conv .card label {
+    display: block; color: var(--dim); font-size: .78rem;
+    margin-bottom: 8px;
+  }
+  .conv input {
+    width: 100%; font-family: var(--mono); font-size: 1rem;
+    background: var(--bg); color: var(--fg);
+    border: 1px solid var(--edge); border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .conv input:focus {
+    outline: none; border-color: var(--accent);
+  }
+  .conv output {
+    display: block; margin-top: 12px; font-size: .9rem;
+    color: var(--accent); min-height: 1.5em; word-break: break-all;
+  }
+  .conv .meta { color: var(--dim); font-size: .78rem; }
+
+  /* ── bar demo ───────────────────────────────────────────── */
+  .bar {
+    background: var(--surface); border: 1px solid var(--edge);
+    border-radius: 10px; padding: 8px 16px;
+    display: flex; align-items: center; gap: 18px;
+    font-size: .82rem; color: var(--dim); overflow-x: auto;
+    white-space: nowrap;
+  }
+  .bar .ws { display: flex; gap: 10px; }
+  .bar .ws b { color: var(--accent); font-weight: 700; }
+  .bar .mod-tick { color: var(--accent); margin-left: auto; }
+
+  footer {
+    border-top: 1px solid var(--edge); padding: 36px 0 56px;
+    color: var(--dim); font-size: .8rem;
+  }
+  footer .heart { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <svg viewBox="0 0 256 256" aria-hidden="true">
+    <rect width="256" height="256" rx="56" fill="var(--surface)"/>
+    <rect x="70" y="52" width="22" height="128" rx="11"
+      fill="var(--accent)"/>
+    <rect x="118" y="52" width="68" height="128" rx="26" fill="none"
+      stroke="var(--accent)" stroke-width="22"/>
+    <rect x="70" y="196" width="116" height="14" rx="7"
+      fill="var(--dim)"/>
+  </svg>
+  <span class="name">waybar-unixtime</span>
+  <nav aria-label="Main navigation">
+    <a href="#install">install</a>
+    <a href="#theming">theming</a>
+    <a href="#convert">convert</a>
+    <a href="https://github.com/zackkitzmiller/waybar-unixtime">
+      github</a>
+  </nav>
+</header>
+
+<main>
+<section class="hero" aria-labelledby="hero-heading"
+  style="border-top:none">
+  <p class="prompt">$ waybar-unixtime</p>
+  <h1 id="hero-heading">The current <em>unix timestamp</em>,
+    ticking in your Waybar.</h1>
+  <p class="sub">A single Rust binary for Hyprland rice. Click to
+    copy, right-click for milliseconds, and it repaints itself from
+    whatever omarchy theme you're running.</p>
+
+  <div class="epoch" id="epoch-card" title="Click to copy">
+    <span id="tick">·</span>
+    <span class="unit" id="unit">seconds since epoch</span>
+    <span class="epoch-hint" id="hint">click to copy · c toggles
+      ms</span>
+  </div>
+  <p id="human">·</p>
+
+  <div class="themes" role="group" aria-label="Theme preview">
+    <span class="label">omarchy theme:</span>
+  </div>
+</section>
+
+<section aria-labelledby="feat-heading">
+  <h2 id="feat-heading">features</h2>
+  <div class="grid">
+    <div class="card">
+      <h3><span class="k">live</span> stream, not a script</h3>
+      <p>Continuous exec mode: one process prints a JSON line per
+        tick. No shell, no date(1) forked every second.</p>
+    </div>
+    <div class="card">
+      <h3><span class="k">s ⇄ ms</span> at runtime</h3>
+      <p>Send SIGUSR1 (right-click) to flip between seconds and
+        milliseconds without restarting the bar.</p>
+    </div>
+    <div class="card">
+      <h3><span class="k">copy</span> on click</h3>
+      <p>waybar-unixtime copy | wl-copy puts the exact timestamp in
+        your clipboard, ready for logs and queries.</p>
+    </div>
+    <div class="card">
+      <h3><span class="k">omarchy</span>-native themes</h3>
+      <p>Reads the active theme's colors.toml and generates
+        namespaced waybar CSS. Switch themes, module follows.</p>
+    </div>
+    <div class="card">
+      <h3><span class="k">tooltip</span> that answers</h3>
+      <p>Epoch, UTC, local time, and ISO 8601 in one hover. Stop
+        alt-tabbing to a converter site.</p>
+    </div>
+    <div class="card">
+      <h3><span class="k">tiny</span> and honest</h3>
+      <p>Rust, MIT licensed, no runtime deps, prebuilt binaries with
+        checksums. Read all of it in one sitting.</p>
+    </div>
+  </div>
+</section>
+
+<section id="install" aria-labelledby="install-heading">
+  <h2 id="install-heading">install</h2>
+  <pre><button class="copy" data-copy="cargo install waybar-unixtime"
+>copy</button><span class="c"># cargo</span>
+<span class="a">cargo</span> install waybar-unixtime</pre>
+  <pre><button class="copy" data-copy-id="aur"
+>copy</button><span class="c"># arch, the honest way</span>
+<span class="a">git</span> clone \
+  https://github.com/zackkitzmiller/waybar-unixtime
+<span class="a">cd</span> waybar-unixtime/packaging/aur
+<span class="a">makepkg</span> -si</pre>
+  <pre><span class="c"># waybar config.jsonc</span>
+"custom/unixtime": {
+  "exec": "waybar-unixtime",
+  "return-type": "json",
+  "restart-interval": 1,
+  "on-click": "waybar-unixtime copy | wl-copy",
+  "on-click-right": "pkill -USR1 -x waybar-unixtime"
+}</pre>
+
+  <p style="margin:26px 0 10px" class="epoch-hint">what it looks
+    like in the bar:</p>
+  <div class="bar" aria-hidden="true">
+    <span class="ws"><b>1</b><span>2</span><span>3</span></span>
+    <span>󰖩 wifi</span>
+    <span> 62%</span>
+    <span class="mod-tick" id="bar-tick">·</span>
+    <span>10:01</span>
+  </div>
+</section>
+
+<section id="theming" aria-labelledby="theming-heading">
+  <h2 id="theming-heading">theming</h2>
+  <p class="sub" style="color:var(--dim);max-width:60ch">
+    One command reads
+    <code>~/.config/omarchy/current/theme/colors.toml</code> and
+    writes namespaced CSS. This page is doing the same trick — hit
+    the theme buttons above.</p>
+  <pre style="margin-top:22px"><button class="copy"
+ data-copy="waybar-unixtime css --install">copy</button><span
+ class="c"># generate + install for the active theme</span>
+<span class="a">waybar-unixtime</span> css --install</pre>
+  <pre><span class="c">/* generated: unixtime.css */</span>
+@define-color unixtime-accent <span class="a" data-sw="accent"
+>#c9a554</span>;
+@define-color unixtime-fg     <span class="a" data-sw="fg"
+>#c2c2b0</span>;
+@define-color unixtime-bg     <span class="a" data-sw="bg"
+>#16161c</span>;
+
+#custom-unixtime { color: @unixtime-fg; }
+#custom-unixtime.millis { color: @unixtime-accent; }</pre>
+</section>
+
+<section id="convert" aria-labelledby="convert-heading">
+  <h2 id="convert-heading">convert</h2>
+  <div class="conv">
+    <div class="card">
+      <label for="ts-in">epoch → human</label>
+      <input id="ts-in" inputmode="numeric" autocomplete="off"
+        placeholder="1786096903">
+      <output id="ts-out" for="ts-in"></output>
+      <p class="meta">seconds or milliseconds — auto-detected</p>
+    </div>
+    <div class="card">
+      <label for="date-in">human → epoch</label>
+      <input id="date-in" autocomplete="off"
+        placeholder="2026-08-07 10:01:43">
+      <output id="date-out" for="date-in"></output>
+      <p class="meta">anything Date.parse understands</p>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <p>MIT licensed. Built with <span class="heart">&lt;3</span> for
+    the Hyprland crowd by
+    <a href="https://github.com/zackkitzmiller">@zackkitzmiller</a>.
+  </p>
+  <p>Not affiliated with waybar, Hyprland, or omarchy — just fond of
+    all three.</p>
+</footer>
+
+</div>
+<script>
+"use strict";
+
+/* ── live epoch ──────────────────────────────────────────── */
+const tick = document.getElementById("tick");
+const barTick = document.getElementById("bar-tick");
+const human = document.getElementById("human");
+const unit = document.getElementById("unit");
+const card = document.getElementById("epoch-card");
+let millis = false;
+
+function render() {
+  const now = Date.now();
+  const value = millis ? now : Math.floor(now / 1000);
+  tick.textContent = String(value);
+  barTick.textContent = String(Math.floor(now / 1000));
+  const d = new Date(now);
+  human.textContent =
+    "UTC " + d.toISOString().replace("T", " ").slice(0, 19) +
+    "  ·  local " + d.toLocaleString();
+  unit.textContent = millis
+    ? "ms since epoch"
+    : "seconds since epoch";
+}
+setInterval(render, 125);
+render();
+
+card.addEventListener("click", () => {
+  navigator.clipboard.writeText(tick.textContent).then(() => {
+    const hint = document.getElementById("hint");
+    hint.textContent = "copied!";
+    setTimeout(() => {
+      hint.textContent = "click to copy · c toggles ms";
+    }, 1200);
+  });
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "c" && !e.ctrlKey && !e.metaKey &&
+      document.activeElement.tagName !== "INPUT") {
+    millis = !millis;
+    render();
+  }
+});
+
+/* ── omarchy-inspired theme palettes ─────────────────────── */
+const THEMES = [
+  { name: "heritage", bg: "#16161c", surface: "#1e1e26",
+    edge: "#2c2c36", fg: "#c2c2b0", dim: "#7a7a6e",
+    accent: "#c9a554" },
+  { name: "arc-blueberry", bg: "#101422", surface: "#171c2e",
+    edge: "#242b45", fg: "#c6cdf0", dim: "#6f77a3",
+    accent: "#7aa2f7" },
+  { name: "retro-82", bg: "#0a0f0a", surface: "#101810",
+    edge: "#1e2f1e", fg: "#9ece6a", dim: "#4f7942",
+    accent: "#33ff66" },
+  { name: "ghost-pastel", bg: "#1a1723", surface: "#221e2f",
+    edge: "#332c47", fg: "#e0d7f5", dim: "#8c81ad",
+    accent: "#c4a7e7" },
+  { name: "nagai-poolside", bg: "#0e1b24", surface: "#142633",
+    edge: "#1f3a4d", fg: "#d6ecf2", dim: "#5f8ba0",
+    accent: "#ff6e9c" },
+];
+
+const group = document.querySelector(".themes");
+const root = document.documentElement;
+
+function applyTheme(theme, button) {
+  const vars = {
+    "--bg": theme.bg, "--surface": theme.surface,
+    "--edge": theme.edge, "--fg": theme.fg,
+    "--dim": theme.dim, "--accent": theme.accent,
+    "--accent-ink": theme.bg,
+  };
+  for (const [key, value] of Object.entries(vars)) {
+    root.style.setProperty(key, value);
+  }
+  for (const [key, sel] of
+       [["accent", "accent"], ["fg", "fg"], ["bg", "bg"]]) {
+    document.querySelectorAll(`[data-sw="${sel}"]`).forEach((el) => {
+      el.textContent = theme[key === "fg" ? "fg" :
+        key === "bg" ? "bg" : "accent"];
+    });
+  }
+  group.querySelectorAll("button").forEach((b) => {
+    b.setAttribute("aria-pressed", String(b === button));
+  });
+}
+
+THEMES.forEach((theme, index) => {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.setAttribute("aria-pressed", String(index === 0));
+  const dot = document.createElement("span");
+  dot.className = "dot";
+  dot.style.background = theme.accent;
+  button.append(dot, document.createTextNode(theme.name));
+  button.addEventListener("click", () => applyTheme(theme, button));
+  group.appendChild(button);
+});
+
+/* ── copy buttons ────────────────────────────────────────── */
+const REPO = "https://github.com/zackkitzmiller/waybar-unixtime";
+const SNIPPETS = {
+  aur: "git clone " + REPO +
+    " && cd waybar-unixtime/packaging/aur && makepkg -si",
+};
+document.querySelectorAll("pre .copy").forEach((button) => {
+  button.addEventListener("click", () => {
+    const text = button.dataset.copy ||
+      SNIPPETS[button.dataset.copyId] || "";
+    navigator.clipboard.writeText(text).then(() => {
+      button.textContent = "ok";
+      setTimeout(() => { button.textContent = "copy"; }, 1200);
+    });
+  });
+});
+
+/* ── converter ───────────────────────────────────────────── */
+const tsIn = document.getElementById("ts-in");
+const tsOut = document.getElementById("ts-out");
+tsIn.addEventListener("input", () => {
+  const raw = tsIn.value.trim();
+  if (!raw) { tsOut.textContent = ""; return; }
+  if (!/^\d+$/.test(raw)) {
+    tsOut.textContent = "digits only";
+    return;
+  }
+  const n = Number(raw);
+  const ms = raw.length > 11 ? n : n * 1000;
+  const d = new Date(ms);
+  if (Number.isNaN(d.getTime())) {
+    tsOut.textContent = "out of range";
+    return;
+  }
+  tsOut.textContent =
+    d.toISOString().replace("T", " ").replace(".000Z", " UTC");
+});
+
+const dateIn = document.getElementById("date-in");
+const dateOut = document.getElementById("date-out");
+dateIn.addEventListener("input", () => {
+  const raw = dateIn.value.trim();
+  if (!raw) { dateOut.textContent = ""; return; }
+  const ms = Date.parse(raw);
+  if (Number.isNaN(ms)) {
+    dateOut.textContent = "unparseable — try 2026-08-07 10:01";
+    return;
+  }
+  dateOut.textContent =
+    Math.floor(ms / 1000) + " s  ·  " + ms + " ms";
+});
+</script>
+</body>
+</html>
