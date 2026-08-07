@@ -1,0 +1,1641 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>waybar-unixtime — design system</title>
+<meta name="description"
+  content="The design system behind waybar-unixtime: six theme
+variables, two typefaces, and every component that has to survive all
+five omarchy palettes.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg
+ xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Crect
+ width='256' height='256' rx='56' fill='%2316161c'/%3E%3Crect x='70'
+ y='52' width='22' height='128' rx='11' fill='%23c9a554'/%3E%3Crect
+ x='118' y='52' width='68' height='128' rx='26' fill='none'
+ stroke='%23c9a554' stroke-width='22'/%3E%3C/svg%3E">
+<script defer src="https://cloud.umami.is/script.js"
+  data-website-id="1039023f-755a-4aed-bbfc-90f6b4121681"></script>
+<style>
+  /* Self-hosted, same files whetstone ships — no external request. */
+  @font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url("fonts/JetBrainsMono-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC,
+      U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+      U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url("fonts/JetBrainsMono-latin-ext.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7,
+      U+02DD-02FF, U+1D00-1DBF, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+      U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  }
+  @font-face {
+    font-family: "Space Grotesk";
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url("fonts/SpaceGrotesk-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC,
+      U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+      U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: "Space Grotesk";
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url("fonts/SpaceGrotesk-latin-ext.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7,
+      U+02DD-02FF, U+1D00-1DBF, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+      U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  }
+
+  :root {
+    --bg: #16161c;
+    --surface: #1e1e26;
+    --edge: #2c2c36;
+    --fg: #c2c2b0;
+    --dim: #7a7a6e;
+    --accent: #c9a554;
+    --accent-ink: #16161c;
+
+    /* Format-chip hues: one lightness, one chroma, hue only. */
+    --ts: oklch(0.52 0.085 258);
+    --iso: oklch(0.52 0.085 318);
+    --eu: oklch(0.52 0.085 293);
+    --us: oklch(0.52 0.085 27);
+    --uk: oklch(0.52 0.085 60);
+    --jp: oklch(0.52 0.085 180);
+    --misc: oklch(0.52 0.02 255);
+    --custom: oklch(0.52 0.085 338);
+
+    --display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo,
+      Consolas, monospace;
+
+    --float: 0 12px 40px rgb(0 0 0 / .35);
+    --detach: color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--mono);
+    line-height: 1.6;
+    min-height: 100vh;
+    padding-bottom: 80px;
+    transition: background .4s, color .4s;
+  }
+
+  ::selection { background: var(--accent); color: var(--accent-ink); }
+  a { color: var(--accent); }
+  code { font-family: inherit; color: var(--fg); }
+
+  /* ── layout ────────────────────────────────────────────── */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: var(--bg);
+    border-bottom: 1px solid var(--edge);
+  }
+  .topbar-in {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .mark { width: 28px; height: 28px; flex: none; }
+  .wordmark {
+    font-family: var(--display);
+    font-weight: 700;
+    letter-spacing: -.02em;
+    font-size: 1rem;
+  }
+  .wordmark span { color: var(--dim); font-weight: 400; }
+
+  .shell {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 32px;
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+  .toc {
+    position: sticky;
+    top: 78px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-top: 56px;
+    font-size: .78rem;
+  }
+  .toc a {
+    color: var(--dim);
+    text-decoration: none;
+    padding: 3px 0;
+    transition: color .15s;
+  }
+  .toc a:hover { color: var(--accent); }
+  .toc a b { color: var(--edge); font-weight: 400; }
+  main { min-width: 0; }
+
+  section { padding: 64px 0 0; }
+  section:first-child { padding-top: 56px; }
+
+  /* ── type ──────────────────────────────────────────────── */
+  h1 {
+    font-family: var(--display);
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    letter-spacing: -.03em;
+    line-height: 1.1;
+    margin: 12px 0 20px;
+    font-weight: 700;
+  }
+  h1 em { color: var(--accent); font-style: normal; }
+  h2 {
+    font-family: var(--display);
+    font-size: 1.05rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin: 0 0 8px;
+    font-weight: 500;
+  }
+  h2::before { content: "## "; color: var(--accent); }
+  .lede { color: var(--dim); max-width: 62ch; margin: 0 0 28px; }
+  .lede-lg { font-size: .9rem; }
+  .lede-sm { font-size: .88rem; }
+  .prompt { color: var(--dim); font-size: .9rem; }
+  .note { color: var(--dim); font-size: .78rem; }
+
+  .eyebrow {
+    font-size: .7rem;
+    letter-spacing: .14em;
+    color: var(--dim);
+    margin: 0 0 12px;
+  }
+  .eyebrow-do { color: var(--accent); }
+
+  /* ── surfaces ──────────────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--edge);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .card-lg { padding: 22px; }
+  .card-flush { padding: 0; overflow: hidden; }
+  .float { border-radius: 14px; box-shadow: var(--float); }
+  .detached { border-color: var(--detach); }
+
+  .grid { display: grid; gap: 14px; }
+  .g190 { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+  .g230 { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .g260 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .g280 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .g300 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .g320 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .top { align-items: start; }
+  .mt34 { margin-top: 34px; }
+  .mt24 { margin-top: 24px; }
+  .mt14 { margin-top: 14px; }
+
+  /* ── theme pills ───────────────────────────────────────── */
+  .themes {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .themes > span { color: var(--dim); font-size: .72rem; }
+  .pill {
+    font-family: inherit;
+    font-size: .72rem;
+    background: var(--surface);
+    color: var(--fg);
+    border: 1px solid var(--edge);
+    border-radius: 999px;
+    padding: 5px 12px 5px 9px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    transition: border-color .15s, transform .15s;
+  }
+  .pill:hover { transform: translateY(-1px); }
+  .pill[aria-pressed="true"] { border-color: var(--accent); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: block; }
+
+  /* ── swatches ──────────────────────────────────────────── */
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+    gap: 12px;
+  }
+  .swatch {
+    background: var(--surface);
+    border: 1px solid var(--edge);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .swatch-chip { height: 62px; border-bottom: 1px solid var(--edge); }
+  .swatch-body { padding: 12px 14px; }
+  .swatch-name { font-size: .8rem; }
+  .swatch-hex { font-size: .78rem; color: var(--accent); margin-top: 3px; }
+  .swatch-use {
+    font-size: .74rem;
+    color: var(--dim);
+    line-height: 1.5;
+    margin-top: 8px;
+  }
+
+  /* ── badges ────────────────────────────────────────────── */
+  .chip {
+    color: #fff;
+    font-size: .62rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    padding: 2px 7px;
+    border-radius: 5px;
+    min-width: 26px;
+    text-align: center;
+    flex: none;
+  }
+  .badge-row {
+    display: grid;
+    grid-template-columns: 62px 158px 88px 1fr;
+    gap: 14px;
+    padding: 10px 20px;
+    align-items: center;
+    font-size: .78rem;
+    border-bottom: 1px solid var(--edge);
+  }
+  .badge-row:last-child { border-bottom: none; }
+  .badge-head {
+    padding: 11px 20px;
+    font-size: .68rem;
+    letter-spacing: .14em;
+    color: var(--dim);
+  }
+  .badge-row .chip { justify-self: start; }
+  .badge-row span:not(.chip) { color: var(--dim); font-size: .72rem; }
+  .badge-was { display: flex; align-items: center; gap: 7px; }
+  .badge-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    display: block;
+    flex: none;
+  }
+
+  /* ── token tables ──────────────────────────────────────── */
+  .trow {
+    display: grid;
+    gap: 16px;
+    padding: 11px 20px;
+    border-bottom: 1px solid var(--edge);
+    font-size: .82rem;
+  }
+  .trow:last-child { border-bottom: none; }
+  .type-tokens .trow { grid-template-columns: 130px 90px 1fr; }
+  .trow-head {
+    font-size: .7rem;
+    letter-spacing: .14em;
+    color: var(--dim);
+  }
+  .trow b { color: var(--accent); font-weight: 400; }
+  .trow span { color: var(--dim); }
+
+  /* ── shape & space ─────────────────────────────────────── */
+  .radii { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+  .radii figure { text-align: center; }
+  .radii div {
+    width: 88px;
+    height: 60px;
+    background: var(--surface);
+    border: 1px solid var(--edge);
+  }
+  .radii figcaption {
+    margin-top: 8px;
+    font-size: .72rem;
+    color: var(--dim);
+  }
+  .stack { display: flex; flex-direction: column; gap: 7px; }
+  .space-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: .78rem;
+    color: var(--dim);
+  }
+  .space-bar { height: 8px; background: var(--accent); flex: none; }
+  .elev { display: flex; flex-direction: column; gap: 14px; }
+  .elev div {
+    background: var(--surface);
+    border: 1px solid var(--edge);
+    border-radius: 10px;
+    padding: 12px;
+    font-size: .78rem;
+    color: var(--dim);
+  }
+  .elev .is-float { box-shadow: var(--float); }
+  .elev .is-detached { border-color: var(--detach); }
+
+  /* ── buttons ───────────────────────────────────────────── */
+  .btn-rows { display: flex; flex-direction: column; gap: 22px; }
+  .btn-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .btn-row > .eyebrow { width: 84px; flex: none; margin: 0; }
+  .btn-row > .note { margin: 0; }
+  button { font-family: inherit; cursor: pointer; }
+  .solid {
+    font-size: .82rem;
+    font-weight: 700;
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 9px 18px;
+    transition: filter .15s;
+  }
+  .solid:hover { filter: brightness(1.12); }
+  .solid[disabled] { cursor: not-allowed; opacity: .4; filter: none; }
+  .ghost {
+    font-size: .82rem;
+    background: none;
+    color: var(--fg);
+    border: 1px solid var(--edge);
+    border-radius: 8px;
+    padding: 9px 18px;
+    transition: border-color .15s, color .15s;
+  }
+  .ghost:hover, .ghost:focus-visible {
+    color: var(--accent);
+    border-color: var(--accent);
+    outline: none;
+  }
+  .ghost.is-focused { border-color: var(--accent); }
+  .choice {
+    font-size: .78rem;
+    background: var(--bg);
+    color: var(--fg);
+    border: 1px solid var(--edge);
+    border-radius: 999px;
+    padding: 6px 14px 6px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform .15s, border-color .15s;
+  }
+  .choice:hover { transform: translateY(-1px); border-color: var(--accent); }
+  .choice.is-on { border-color: var(--accent); }
+  .choice .dot { width: 10px; height: 10px; background: var(--dim); }
+  .choice.is-on .dot { background: var(--accent); }
+  .micro {
+    font-size: .7rem;
+    background: none;
+    border: 1px solid var(--edge);
+    color: var(--dim);
+    border-radius: 6px;
+    padding: 3px 9px;
+    transition: color .15s, border-color .15s;
+  }
+  .micro:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* ── forms ─────────────────────────────────────────────── */
+  .form-card { display: flex; flex-direction: column; gap: 18px; }
+  .form-card.wide { gap: 20px; padding: 20px; }
+  label.field {
+    display: block;
+    color: var(--dim);
+    font-size: .78rem;
+    margin-bottom: 8px;
+  }
+  input, select {
+    width: 100%;
+    font-family: inherit;
+    font-size: 1rem;
+    background: var(--bg);
+    color: var(--fg);
+    border: 1px solid var(--edge);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  select { font-size: .9rem; cursor: pointer; }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  input.is-focused { border-color: var(--accent); }
+  .out {
+    font-size: .9rem;
+    color: var(--accent);
+    min-height: 1.5em;
+    margin: 12px 0 0;
+  }
+  .hint { color: var(--dim); font-size: .78rem; }
+  .opts { display: flex; flex-direction: column; gap: 10px; }
+  .opt {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: .85rem;
+    cursor: pointer;
+  }
+  .box, .radio {
+    width: 15px;
+    height: 15px;
+    border: 1px solid var(--edge);
+    background: var(--bg);
+    flex: none;
+    display: grid;
+    place-items: center;
+  }
+  .box { border-radius: 4px; }
+  .radio { border-radius: 50%; }
+  .box.is-on {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-size: .62rem;
+    font-weight: 700;
+  }
+  .radio.is-on { border-color: var(--accent); }
+  .radio.is-on::after {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: .85rem;
+    cursor: pointer;
+  }
+  .toggle-row + .toggle-row { margin-top: 12px; }
+  .toggle {
+    width: 38px;
+    height: 21px;
+    border-radius: 999px;
+    background: var(--bg);
+    border: 1px solid var(--edge);
+    position: relative;
+    flex: none;
+    display: block;
+  }
+  .toggle::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--dim);
+  }
+  .toggle.is-on { background: var(--accent); border-color: var(--accent); }
+  .toggle.is-on::after { left: 19px; background: var(--accent-ink); }
+
+  /* ── navigation ────────────────────────────────────────── */
+  .demo-head {
+    padding: 12px 20px;
+    font-size: .7rem;
+    letter-spacing: .14em;
+    color: var(--dim);
+    border-bottom: 1px solid var(--edge);
+  }
+  .demo-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+  }
+  .demo-bar nav {
+    margin-left: auto;
+    display: flex;
+    gap: 18px;
+    font-size: .85rem;
+  }
+  .demo-bar nav a { color: var(--dim); text-decoration: none; }
+  .demo-bar nav a:hover { color: var(--accent); }
+  .demo-bar nav a.is-current { color: var(--fg); }
+  .tabs {
+    display: flex;
+    gap: 24px;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--edge);
+    font-size: .85rem;
+  }
+  .tabs span {
+    padding: 12px 0;
+    color: var(--dim);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    cursor: pointer;
+  }
+  .tabs span:hover { color: var(--accent); }
+  .tabs .is-current { color: var(--fg); border-bottom-color: var(--accent); }
+  .rail {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 0;
+    font-size: .85rem;
+  }
+  .rail span {
+    padding: 6px 20px;
+    color: var(--dim);
+    border-left: 2px solid transparent;
+    cursor: pointer;
+  }
+  .rail span:hover { color: var(--accent); }
+  .rail .is-current { color: var(--fg); border-left-color: var(--accent); }
+  .crumb { padding: 16px 20px; font-size: .85rem; color: var(--dim); }
+  .crumb i { color: var(--edge); font-style: normal; }
+  .crumb b { color: var(--fg); font-weight: 400; }
+
+  /* ── data display ──────────────────────────────────────── */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--edge);
+    border-radius: 14px;
+    padding: 10px 0;
+    box-shadow: var(--float);
+  }
+  .panel-sect {
+    color: var(--dim);
+    font-size: .68rem;
+    letter-spacing: .18em;
+    text-align: center;
+    padding: 10px 0 6px;
+  }
+  .panel-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 7px 20px;
+    cursor: pointer;
+    font-size: .82rem;
+    border-left: 2px solid transparent;
+    transition: background .15s, border-color .15s;
+  }
+  .panel-row.is-active { border-left-color: var(--accent); }
+  .panel-row:hover {
+    background: var(--bg);
+    border-left-color: var(--accent);
+  }
+  .panel-lbl {
+    color: var(--fg);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .panel-val {
+    color: var(--dim);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color .15s;
+  }
+  .panel-val.is-copied { color: var(--accent); }
+
+  .history .trow { grid-template-columns: 1fr 82px 62px; gap: 12px; }
+  .history .trow:not(.trow-head) {
+    padding: 9px 18px;
+    font-size: .8rem;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: background .15s, border-color .15s;
+  }
+  .history .trow:not(.trow-head):hover {
+    background: var(--bg);
+    border-left-color: var(--accent);
+  }
+  .history .trow-head { padding: 10px 18px; }
+  .history .age { text-align: right; }
+
+  .bar {
+    background: var(--surface);
+    border: 1px solid var(--edge);
+    border-radius: 10px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    font-size: .82rem;
+    color: var(--dim);
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .bar .ws { display: flex; gap: 10px; }
+  .bar .ws b { color: var(--accent); }
+  .bar-tick {
+    color: var(--accent);
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+  }
+  .empty { padding: 34px 20px; text-align: center; }
+  .empty p:first-child { color: var(--fg); font-size: .85rem; }
+
+  /* ── overlays ──────────────────────────────────────────── */
+  .stage {
+    background: var(--bg);
+    border: 1px solid var(--edge);
+    border-radius: 12px;
+    padding: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 250px;
+  }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--edge);
+    width: 100%;
+    max-width: 340px;
+  }
+  .modal-body { padding: 20px 22px 0; }
+  .modal-title {
+    font-family: var(--display);
+    font-size: 1rem;
+    font-weight: 500;
+  }
+  .modal-copy { margin-top: 8px; color: var(--dim); font-size: .82rem; }
+  .modal-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 20px 22px;
+  }
+  .modal-foot button { font-size: .8rem; padding: 8px 16px; }
+  .toasts { display: flex; flex-direction: column; gap: 10px; }
+  .toast {
+    background: var(--surface);
+    border: 1px solid var(--edge);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: .82rem;
+  }
+  .toast .dot { width: 6px; height: 6px; background: var(--accent); }
+  .toast.is-inert .dot { background: var(--dim); }
+  .toast.is-inert > span:nth-child(2) { color: var(--dim); }
+  .toast .dismiss {
+    margin-left: auto;
+    color: var(--dim);
+    font-size: .74rem;
+    cursor: pointer;
+  }
+  .menu {
+    background: var(--bg);
+    border: 1px solid var(--detach);
+    border-radius: 12px;
+    padding: 8px 4px;
+    font-size: .78rem;
+  }
+  .menu-sect {
+    padding: 6px 12px;
+    color: var(--dim);
+    font-size: .68rem;
+    letter-spacing: .14em;
+    text-align: center;
+  }
+  .menu-item {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 5px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .menu-item:hover {
+    background: color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+  .menu-item .tick { color: var(--accent); width: 10px; flex: none; }
+  .menu-sep {
+    height: 1px;
+    background: color-mix(in srgb, var(--fg) 15%, transparent);
+    margin: 6px 10px;
+  }
+
+  /* ── code ──────────────────────────────────────────────── */
+  pre {
+    background: var(--surface);
+    border: 1px solid var(--edge);
+    border-radius: 12px;
+    padding: 18px 20px;
+    overflow-x: auto;
+    font-size: .84rem;
+    line-height: 1.7;
+    position: relative;
+    font-family: inherit;
+  }
+  pre + pre { margin-top: 14px; }
+  pre .c { color: var(--dim); }
+  pre .a { color: var(--accent); }
+  pre .copy { position: absolute; top: 10px; right: 10px; }
+
+  /* ── motion ────────────────────────────────────────────── */
+  @keyframes wu-blink { 50% { opacity: 0; } }
+  .caret {
+    display: inline-block;
+    width: .55em;
+    height: .12em;
+    margin-left: .12em;
+    background: var(--dim);
+    vertical-align: baseline;
+    animation: wu-blink 1.2s steps(1) infinite;
+  }
+  .tick-demo {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── voice ─────────────────────────────────────────────── */
+  .rules { display: flex; flex-direction: column; gap: 10px; }
+  .rules p { font-size: .82rem; color: var(--dim); }
+  .rules b { color: var(--fg); font-weight: 400; }
+  .rules i { color: var(--accent); font-style: normal; }
+
+  footer {
+    max-width: 1180px;
+    margin: 64px auto 0;
+    padding: 24px 32px 0;
+    border-top: 1px solid var(--edge);
+    color: var(--dim);
+    font-size: .78rem;
+  }
+
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; gap: 0; }
+    .toc { position: static; flex-flow: row wrap; gap: 14px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-in">
+    <svg class="mark" viewBox="0 0 256 256" aria-hidden="true">
+      <rect width="256" height="256" rx="56" fill="var(--surface)"/>
+      <rect x="70" y="52" width="22" height="128" rx="11"
+        fill="var(--accent)"/>
+      <rect x="118" y="52" width="68" height="128" rx="26" fill="none"
+        stroke="var(--accent)" stroke-width="22"/>
+      <rect x="70" y="196" width="116" height="14" rx="7"
+        fill="var(--dim)"/>
+    </svg>
+    <span class="wordmark">unixtime <span>design system</span></span>
+    <div class="themes" id="themes" role="group"
+      aria-label="Theme preview">
+      <span>theme</span>
+    </div>
+  </div>
+</div>
+
+<div class="shell">
+  <nav class="toc" aria-label="Contents">
+    <a href="#overview"><b>00</b> overview</a>
+    <a href="#color"><b>01</b> color</a>
+    <a href="#type"><b>02</b> type</a>
+    <a href="#space"><b>03</b> space &amp; shape</a>
+    <a href="#badges"><b>04</b> badges</a>
+    <a href="#buttons"><b>05</b> buttons</a>
+    <a href="#forms"><b>06</b> forms</a>
+    <a href="#nav"><b>07</b> navigation</a>
+    <a href="#data"><b>08</b> data display</a>
+    <a href="#overlays"><b>09</b> overlays</a>
+    <a href="#code"><b>10</b> code</a>
+    <a href="#motion"><b>11</b> motion</a>
+    <a href="#voice"><b>12</b> voice</a>
+  </nav>
+
+  <main>
+
+  <section id="overview" aria-labelledby="overview-h">
+    <p class="prompt">$ waybar-unixtime css --install</p>
+    <h1 id="overview-h">A design system that
+      <em>inherits its palette</em>, not one that owns it.</h1>
+    <p class="lede lede-lg">Every color in this system resolves through
+      six variables read from the active omarchy theme's
+      <code>colors.toml</code>. Components never name a color. They name
+      a role — surface, edge, dim, accent — and the theme fills it in.
+      The five themes in the switcher above are the ones shipped in the
+      marketing site; the system is correct only if every component
+      below survives all five.</p>
+    <p class="lede lede-lg">The type is monospace by default because the
+      product's whole subject is aligned columns of digits. Prose
+      headings get one display face so pages have a voice above the
+      terminal.</p>
+
+    <div class="grid g190 mt34">
+      <div class="card">
+        <p class="eyebrow">SOURCE OF TRUTH</p>
+        <p style="font-size:.85rem">src/theme.rs</p>
+        <p class="note" style="margin-top:6px">accent, foreground,
+          background</p>
+      </div>
+      <div class="card">
+        <p class="eyebrow">NAMESPACE</p>
+        <p style="font-size:.85rem">unixtime-*</p>
+        <p class="note" style="margin-top:6px">no collisions with host
+          CSS</p>
+      </div>
+      <div class="card">
+        <p class="eyebrow">FALLBACK</p>
+        <p style="font-size:.85rem">heritage</p>
+        <p class="note" style="margin-top:6px">unreadable theme still
+          renders</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="color" aria-labelledby="color-h">
+    <h2 id="color-h">color</h2>
+    <p class="lede lede-sm">Three values come from the theme file. Three
+      are derived for depth. That is the entire palette — there is no
+      secondary, no tertiary, no success-green. Semantic states borrow
+      the accent or the dim.</p>
+
+    <div class="swatches" id="swatches"></div>
+
+    <div class="grid g260 mt24">
+      <div class="card">
+        <p style="font-size:.85rem;margin-bottom:10px">Derived, not
+          authored</p>
+        <p class="note">surface and edge are lifts off the background;
+          dim is the foreground pulled toward it. Any new theme only has
+          to supply three hexes.</p>
+      </div>
+      <div class="card">
+        <p style="font-size:.85rem;margin-bottom:10px">Alpha, not new
+          colors</p>
+        <p class="note">Hovers and borders use
+          <code>alpha(accent, .25)</code> and
+          <code>alpha(fg, .15)</code>, mirroring the GTK stylesheet the
+          binary emits. Never introduce a hex for a state.</p>
+      </div>
+      <div class="card">
+        <p style="font-size:.85rem;margin-bottom:10px">Accent is a
+          highlight, not a fill</p>
+        <p class="note">Accent carries live values, active states, and
+          one word per heading. A screen with more than ~5% accent
+          coverage is doing it wrong.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="type" aria-labelledby="type-h">
+    <h2 id="type-h">type</h2>
+    <p class="lede lede-sm">Two families. Space Grotesk sets headings
+      and page titles; JetBrains Mono does everything else, including
+      body copy. Numeric values always carry
+      <code>font-variant-numeric: tabular-nums</code> so ticking digits
+      do not reflow.</p>
+
+    <div class="grid g300">
+      <div class="card card-lg">
+        <p class="eyebrow">DISPLAY — SPACE GROTESK</p>
+        <p style="font-family:var(--display);font-size:2.2rem;
+          font-weight:700;letter-spacing:-.03em;line-height:1.1">Epoch</p>
+        <p style="font-family:var(--display);font-size:1.1rem;
+          font-weight:500;margin-top:10px">Aa Bb Cc 0123456789</p>
+        <p class="note" style="margin-top:14px">700 for h1 · 500 for
+          h2/h3 · never below 0.95rem</p>
+      </div>
+      <div class="card card-lg">
+        <p class="eyebrow">MONO — JETBRAINS MONO</p>
+        <p style="font-size:2.2rem;font-weight:700;line-height:1.1;
+          font-variant-numeric:tabular-nums">1786096903</p>
+        <p style="font-size:1.1rem;margin-top:10px">Aa Bb Cc
+          0123456789</p>
+        <p class="note" style="margin-top:14px">400 body · 500 labels ·
+          700 values &amp; the bar</p>
+      </div>
+    </div>
+
+    <div class="card card-flush type-tokens mt14">
+      <div class="trow trow-head"><span>TOKEN</span><span>SIZE</span>
+        <span>USE</span></div>
+      <div class="trow"><b>display</b><span>clamp 1.8→2.8</span>
+        <span>page title, one per page</span></div>
+      <div class="trow"><b>epoch</b><span>clamp 2→3.6</span>
+        <span>the live value, accent, tabular</span></div>
+      <div class="trow"><b>section</b><span>1.05rem</span>
+        <span>uppercase, .12em tracking, dim</span></div>
+      <div class="trow"><b>body</b><span>0.85–0.9rem</span>
+        <span>prose, dim; max 62ch</span></div>
+      <div class="trow"><b>meta</b><span>0.78rem</span>
+        <span>labels, hints, captions</span></div>
+      <div class="trow"><b>chip</b><span>0.68rem</span>
+        <span>badges, eyebrow labels, .14em</span></div>
+    </div>
+  </section>
+
+  <section id="space" aria-labelledby="space-h">
+    <h2 id="space-h">space &amp; shape</h2>
+    <p class="lede lede-sm">Radii come straight from the emitted GTK
+      stylesheet: 12px for panels and menus, 8px for the items inside
+      them. The site adds 14 for the two floating surfaces and 999 for
+      pills.</p>
+
+    <div class="radii">
+      <figure><div style="border-radius:6px"></div>
+        <figcaption>6 · copy btn</figcaption></figure>
+      <figure><div style="border-radius:8px"></div>
+        <figcaption>8 · inputs, rows</figcaption></figure>
+      <figure><div style="border-radius:10px"></div>
+        <figcaption>10 · the bar</figcaption></figure>
+      <figure><div style="border-radius:12px"></div>
+        <figcaption>12 · cards, code</figcaption></figure>
+      <figure><div style="border-radius:14px"></div>
+        <figcaption>14 · floating</figcaption></figure>
+      <figure><div style="border-radius:999px"></div>
+        <figcaption>999 · pills</figcaption></figure>
+    </div>
+
+    <div class="grid g260">
+      <div class="card">
+        <p class="eyebrow">SPACING</p>
+        <div class="stack">
+          <div class="space-row"><div class="space-bar"
+            style="width:6px"></div>6 · inline gaps</div>
+          <div class="space-row"><div class="space-bar"
+            style="width:10px"></div>10 · chip clusters</div>
+          <div class="space-row"><div class="space-bar"
+            style="width:14px"></div>14 · grid gutters</div>
+          <div class="space-row"><div class="space-bar"
+            style="width:20px"></div>20 · card padding</div>
+          <div class="space-row"><div class="space-bar"
+            style="width:28px"></div>28 · heading→content</div>
+          <div class="space-row"><div class="space-bar"
+            style="width:56px"></div>56 · section rhythm</div>
+        </div>
+      </div>
+      <div class="card">
+        <p class="eyebrow">ELEVATION</p>
+        <div class="elev">
+          <div>flat — border only. Cards, code, rows.</div>
+          <div class="is-float">float — 0 12px 40px rgb(0 0 0 / .35).
+            Panels, modals, the epoch card.</div>
+          <div class="is-detached">detached — accent border at 50%. GTK
+            menus and tooltips, which cannot cast shadows.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="badges" aria-labelledby="badges-h">
+    <h2 id="badges-h">badges</h2>
+    <p class="lede lede-sm">The format chips in <code>formats.rs</code>
+      were bright generic hexes that fought every theme. Retuned, they
+      hold one lightness and one chroma and vary only in hue — so they
+      read as a family, sit behind the accent, and stay legible on any
+      background. The formula is <code>oklch(0.52 0.085 H)</code> with
+      white text; the neutral drops chroma to 0.02.</p>
+
+    <div class="card card-flush" id="badges-table"></div>
+    <p class="note" style="margin-top:12px">Chips are identity, never
+      status. A chip never means good or bad — it names which family a
+      value belongs to. Status uses accent for active, dim for inert.</p>
+  </section>
+
+  <section id="buttons" aria-labelledby="buttons-h">
+    <h2 id="buttons-h">buttons</h2>
+    <p class="lede lede-sm">Four kinds, and the ordering matters: solid
+      accent is reserved for the one irreversible action on a screen.
+      Most of this product's buttons are ghosts, because most of its
+      actions are copies.</p>
+
+    <div class="card" style="padding:24px">
+      <div class="btn-rows">
+        <div class="btn-row">
+          <span class="eyebrow">SOLID</span>
+          <button class="solid">Install CSS</button>
+          <button class="solid" disabled>Disabled</button>
+          <span class="note">one per screen</span>
+        </div>
+        <div class="btn-row">
+          <span class="eyebrow">GHOST</span>
+          <button class="ghost">Regenerate</button>
+          <button class="ghost is-focused">Focused</button>
+          <span class="note">the default</span>
+        </div>
+        <div class="btn-row">
+          <span class="eyebrow">PILL</span>
+          <button class="choice is-on"><span class="dot"></span>
+            selected</button>
+          <button class="choice"><span class="dot"></span>
+            unselected</button>
+          <span class="note">mutually exclusive sets</span>
+        </div>
+        <div class="btn-row">
+          <span class="eyebrow">MICRO</span>
+          <button class="micro" data-demo-copy>copy</button>
+          <span class="note">lives inside code blocks; confirms in
+            place with "ok" for 1200ms, never a toast</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="forms" aria-labelledby="forms-h">
+    <h2 id="forms-h">forms</h2>
+    <p class="lede lede-sm">Inputs sit on the page background, not the
+      surface, so a field always reads as a hole cut into its card.
+      Labels are meta-sized and dim above; result and helper text sit
+      below, accent for output and dim for hints. Validation is inline
+      text — there is no red.</p>
+
+    <div class="grid g300">
+      <div class="card form-card" style="padding:20px">
+        <div>
+          <label class="field" for="f-epoch">epoch → human</label>
+          <input id="f-epoch" placeholder="1786096903"
+            autocomplete="off">
+          <p class="out">2026-08-07 10:01:43 UTC</p>
+          <p class="hint">seconds or milliseconds — auto-detected</p>
+        </div>
+        <div>
+          <label class="field" for="f-hist">history size</label>
+          <input id="f-hist" class="is-focused" value="50">
+          <p class="hint" style="margin-top:8px">focused · border
+            becomes accent, no glow</p>
+        </div>
+        <div>
+          <label class="field" for="f-fmt">strftime pattern</label>
+          <input id="f-fmt" value="%Y%m%d-%H%%">
+          <p class="hint" style="margin-top:8px">↳ <span
+            style="color:var(--fg)">trailing %% is not a
+            directive</span></p>
+        </div>
+      </div>
+
+      <div class="card form-card wide">
+        <div>
+          <label class="field" for="f-default">default format</label>
+          <select id="f-default">
+            <option>seconds</option>
+            <option>millis</option>
+            <option>iso-utc</option>
+          </select>
+        </div>
+        <div>
+          <p class="field">bar behaviour</p>
+          <div class="opts">
+            <label class="opt"><span class="box is-on">✓</span>tooltip
+              on hover</label>
+            <label class="opt"><span class="box"></span>scroll to cycle
+              formats</label>
+          </div>
+        </div>
+        <div>
+          <p class="field">precision</p>
+          <div class="opts">
+            <label class="opt"><span class="radio is-on"></span>
+              seconds</label>
+            <label class="opt"><span class="radio"></span>
+              milliseconds</label>
+          </div>
+        </div>
+        <div>
+          <label class="toggle-row">re-theme on omarchy switch
+            <span class="toggle is-on"></span></label>
+          <label class="toggle-row">stream instead of poll
+            <span class="toggle"></span></label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="nav" aria-labelledby="nav-h">
+    <h2 id="nav-h">navigation</h2>
+    <p class="lede lede-sm">Navigation is dim until it matters. Links
+      are lowercase, unadorned, and turn accent on hover; the current
+      item is the only one in foreground. Nothing gets an underline, a
+      pill background, or a box.</p>
+
+    <div class="grid" style="grid-template-columns:1fr">
+      <div class="card card-flush">
+        <p class="demo-head">TOP BAR</p>
+        <div class="demo-bar">
+          <svg class="mark" style="width:26px;height:26px"
+            viewBox="0 0 256 256" aria-hidden="true">
+            <rect width="256" height="256" rx="56" fill="var(--bg)"/>
+            <rect x="70" y="52" width="22" height="128" rx="11"
+              fill="var(--accent)"/>
+            <rect x="118" y="52" width="68" height="128" rx="26"
+              fill="none" stroke="var(--accent)" stroke-width="22"/>
+          </svg>
+          <span style="font-weight:700;letter-spacing:-.02em;
+            font-size:.9rem">waybar-unixtime</span>
+          <nav>
+            <a href="#nav" class="is-current">formats</a>
+            <a href="#nav">install</a>
+            <a href="#nav">theming</a>
+            <a href="#nav">github</a>
+          </nav>
+        </div>
+      </div>
+
+      <div class="grid g280">
+        <div class="card card-flush">
+          <p class="demo-head">TABS</p>
+          <div class="tabs">
+            <span class="is-current">formats</span>
+            <span>convert</span>
+            <span>history</span>
+          </div>
+          <p class="note" style="padding:18px 20px">2px accent rule
+            under the active tab. Matches the panel row's left rule —
+            one active-marker language.</p>
+        </div>
+
+        <div class="card card-flush">
+          <p class="demo-head">SIDE RAIL</p>
+          <div class="rail">
+            <span class="is-current">seconds</span>
+            <span>milliseconds</span>
+            <span>microseconds</span>
+            <span>nanoseconds</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-flush">
+        <p class="demo-head">BREADCRUMB</p>
+        <p class="crumb">config <i>/</i> custom formats <i>/</i>
+          <b>Deploy tag</b></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="data" aria-labelledby="data-h">
+    <h2 id="data-h">data display</h2>
+    <p class="lede lede-sm">The format panel is the system's signature
+      component: label left, value right, chip in front, a 2px accent
+      rule on hover, and a copy that confirms by turning the value
+      accent for 900ms. Tables are the same row, given a header.</p>
+
+    <div class="grid g320 top">
+      <div>
+        <p class="eyebrow">FORMAT PANEL</p>
+        <div class="panel" id="panel"></div>
+      </div>
+      <div>
+        <p class="eyebrow">TABLE</p>
+        <div class="card card-flush history">
+          <div class="trow trow-head"><span>VALUE</span>
+            <span>FORMAT</span><span class="age">AGE</span></div>
+          <div class="trow"><span>1786096903</span><span>seconds</span>
+            <span class="age">4s</span></div>
+          <div class="trow"><span>2026-08-07T10:01:43Z</span>
+            <span>iso-utc</span><span class="age">2m</span></div>
+          <div class="trow"><span>20260807-1001</span><span>picker</span>
+            <span class="age">1h</span></div>
+          <div class="trow"><span>1786010503000</span><span>millis</span>
+            <span class="age">1d</span></div>
+        </div>
+
+        <p class="eyebrow" style="margin-top:24px">THE BAR MODULE</p>
+        <div class="bar">
+          <span class="ws"><b>1</b><span>2</span><span>3</span></span>
+          <span>wifi</span><span>62%</span>
+          <span class="bar-tick" id="bar-tick">·</span>
+          <span>10:01</span>
+        </div>
+        <p class="note" style="margin-top:10px">12px horizontal
+          padding, monospace, foreground for seconds and accent for
+          every higher precision — the class name carries the color.</p>
+
+        <p class="eyebrow" style="margin-top:24px">EMPTY STATE</p>
+        <div class="card empty">
+          <p>(empty)</p>
+          <p class="note" style="margin-top:6px">Nothing copied yet.
+            Click any format to start a history.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="overlays" aria-labelledby="overlays-h">
+    <h2 id="overlays-h">overlays</h2>
+    <p class="lede lede-sm">Everything that floats gets radius 14, the
+      float shadow, and — where it detaches from the page entirely, as
+      GTK menus and tooltips do — a 50% accent border instead. Toasts
+      are for background work only; a copy confirms in place.</p>
+
+    <div class="grid g300 top">
+      <div>
+        <p class="eyebrow">MODAL</p>
+        <div class="stage">
+          <div class="modal float">
+            <div class="modal-body">
+              <p class="modal-title">Overwrite unixtime.css?</p>
+              <p class="modal-copy">~/.config/waybar/unixtime.css
+                already exists. Regenerating replaces it with the
+                arc-blueberry palette.</p>
+            </div>
+            <div class="modal-foot">
+              <button class="ghost">Cancel</button>
+              <button class="solid">Overwrite</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p class="eyebrow">TOAST</p>
+        <div class="toasts">
+          <div class="toast float"><span class="dot"></span>
+            <span>unixtime.css installed</span>
+            <span class="dismiss">dismiss</span></div>
+          <div class="toast float is-inert"><span class="dot"></span>
+            <span>no dmenu launcher found</span>
+            <span class="dismiss">dismiss</span></div>
+        </div>
+
+        <p class="eyebrow" style="margin-top:24px">TOOLTIP / GTK
+          MENU</p>
+        <div class="menu">
+          <p class="menu-sect">───── TIMESTAMP ─────</p>
+          <div class="menu-item"><span class="tick">✓</span>
+            <span class="chip" style="background:var(--ts)">TS</span>
+            Seconds</div>
+          <div class="menu-item"><span class="tick"></span>
+            <span class="chip" style="background:var(--ts)">TS</span>
+            Milliseconds</div>
+          <div class="menu-sep"></div>
+          <div class="menu-item"><span class="tick"></span>
+            <span class="chip" style="background:var(--iso)">ISO</span>
+            ISO 8601 UTC</div>
+        </div>
+        <p class="note" style="margin-top:10px">Menu items get radius 8
+          and a 25% accent hover fill; separators are the foreground at
+          15%. These values ship verbatim in <code>theme.rs</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="code" aria-labelledby="code-h">
+    <h2 id="code-h">code</h2>
+    <p class="lede lede-sm">Two colors only: dim for comments, accent
+      for the command being run. Everything else is foreground. No
+      syntax theme, no language keywords, no line numbers.</p>
+    <pre><button class="micro copy" data-demo-copy
+>copy</button><span class="c"># generate + install for the active
+theme</span>
+<span class="a">waybar-unixtime</span> css --install</pre>
+    <pre><span class="c">/* generated: unixtime.css */</span>
+@define-color unixtime-accent <span class="a" data-sw="accent"
+>#c9a554</span>;
+@define-color unixtime-fg     <span class="a" data-sw="fg"
+>#c2c2b0</span>;
+@define-color unixtime-bg     <span class="a" data-sw="bg"
+>#16161c</span>;</pre>
+  </section>
+
+  <section id="motion" aria-labelledby="motion-h">
+    <h2 id="motion-h">motion</h2>
+    <p class="lede lede-sm">One thing on screen is allowed to move on
+      its own: the cursor. Everything else moves only in response to a
+      pointer, and briefly.</p>
+    <div class="grid g230">
+      <div class="card" style="padding:20px">
+        <p class="eyebrow">CURSOR — 1.2s steps(1)</p>
+        <p class="tick-demo">1786096903<span class="caret"></span></p>
+        <p class="note" style="margin-top:12px">Stepped, never eased —
+          it is a terminal caret, not a pulse.</p>
+      </div>
+      <div class="card" style="padding:20px">
+        <p class="eyebrow">HOVER — 150ms</p>
+        <button class="choice" style="padding:6px 14px">hover me</button>
+        <p class="note" style="margin-top:12px">border-color and a 1px
+          lift. Never scale, never shadow-on-hover.</p>
+      </div>
+      <div class="card" style="padding:20px">
+        <p class="eyebrow">CONFIRM — 900/1200ms</p>
+        <p style="font-size:.85rem;color:var(--accent)">1786096903</p>
+        <p class="note" style="margin-top:12px">Copy flips the value to
+          accent for 900ms; a button swaps its label to "ok" for
+          1200ms. Then it reverts silently.</p>
+      </div>
+      <div class="card" style="padding:20px">
+        <p class="eyebrow">THEME — 400ms</p>
+        <p class="note">background and color cross-fade over 400ms so an
+          omarchy switch reads as a repaint, not a reload. Borders and
+          text snap.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="voice" aria-labelledby="voice-h">
+    <h2 id="voice-h">voice</h2>
+    <p class="lede lede-sm">The copy in this repo reads like a person
+      who uses the thing wrote it. Keep that.</p>
+    <div class="grid g280">
+      <div class="card" style="padding:20px">
+        <p class="eyebrow eyebrow-do">DO</p>
+        <div class="rules">
+          <p>Section headings lowercase, prefixed <i>##</i> — the page
+            is a README.</p>
+          <p>Lead a feature with the noun: "<b>dropdown</b> of every
+            format".</p>
+          <p>Say what it does, then what it costs. "Rust, MIT licensed,
+            no runtime deps."</p>
+          <p>Name real commands and real paths in body copy.</p>
+        </div>
+      </div>
+      <div class="card" style="padding:20px">
+        <p class="eyebrow">DON'T</p>
+        <div class="rules">
+          <p>No exclamation marks outside "copied!".</p>
+          <p>No "seamlessly", "powerful", "effortless".</p>
+          <p>No emoji — the only glyphs are ✓ ⇄ ⟲ · ── and they carry
+            meaning.</p>
+          <p>No title case, anywhere, including buttons.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<footer>
+  <p>The system, not the site. Components here are the contract;
+    <a href="/">the marketing page</a> and the binary's emitted GTK CSS
+    are both consumers of it.</p>
+</footer>
+
+<script>
+"use strict";
+
+/* ── analytics ───────────────────────────────────────────── */
+function track(name, data) {
+  const u = window.umami;
+  if (!u || typeof u.track !== "function") return;
+  try {
+    u.track(name, data);
+  } catch (_) {
+    /* analytics must never break the page */
+  }
+}
+
+/* ── data ────────────────────────────────────────────────── */
+const THEMES = [
+  { name: "heritage", bg: "#16161c", surface: "#1e1e26",
+    edge: "#2c2c36", fg: "#c2c2b0", dim: "#7a7a6e",
+    accent: "#c9a554" },
+  { name: "arc-blueberry", bg: "#101422", surface: "#171c2e",
+    edge: "#242b45", fg: "#c6cdf0", dim: "#6f77a3",
+    accent: "#7aa2f7" },
+  { name: "retro-82", bg: "#0a0f0a", surface: "#101810",
+    edge: "#1e2f1e", fg: "#9ece6a", dim: "#4f7942",
+    accent: "#33ff66" },
+  { name: "ghost-pastel", bg: "#1a1723", surface: "#221e2f",
+    edge: "#332c47", fg: "#e0d7f5", dim: "#8c81ad",
+    accent: "#c4a7e7" },
+  { name: "nagai-poolside", bg: "#0e1b24", surface: "#142633",
+    edge: "#1f3a4d", fg: "#d6ecf2", dim: "#5f8ba0",
+    accent: "#ff6e9c" },
+];
+
+/* [chip, css var, retuned oklch, hex it replaced, applies to] */
+const BADGES = [
+  ["TS", "--ts", "0.52 0.085 258", "#3b82f6",
+    "seconds · millis · micros · nanos"],
+  ["ISO", "--iso", "0.52 0.085 318", "#c026d3",
+    "iso-utc · iso-local · iso-date"],
+  ["EU", "--eu", "0.52 0.085 293", "#8b5cf6",
+    "european · european-short"],
+  ["US", "--us", "0.52 0.085 27", "#ef4444", "us · us-short"],
+  ["UK", "--uk", "0.52 0.085 60", "#f97316", "british"],
+  ["JP", "--jp", "0.52 0.085 180", "#14b8a6", "japanese"],
+  ["RFC", "--misc", "0.52 0.02 255", "#64748b",
+    "rfc2822 · unix-readable"],
+  ["FMT", "--custom", "0.52 0.085 338", "#d946ef",
+    "user strftime patterns"],
+];
+
+const SWATCHES = [
+  ["background", "bg", "the page itself; also the well an input sits in"],
+  ["surface", "surface", "cards, code blocks, panels, the bar"],
+  ["edge", "edge", "every 1px border and divider"],
+  ["foreground", "fg", "labels, headings, values at rest"],
+  ["dim", "dim", "prose, meta, inactive nav — most text, in fact"],
+  ["accent", "accent",
+    "live values, active state, one word per heading"],
+];
+
+const pad = (n) => String(n).padStart(2, "0");
+
+const PANEL = [
+  ["TIMESTAMP", null],
+  ["Seconds", (d) => Math.floor(d.getTime() / 1000), "TS", "--ts", true],
+  ["Milliseconds", (d) => d.getTime(), "TS", "--ts"],
+  ["Microseconds", (d) => d.getTime() + "000", "TS", "--ts"],
+  ["DATE FORMATS", null],
+  ["ISO 8601 UTC", (d) => d.toISOString().slice(0, 19) + "Z",
+    "ISO", "--iso"],
+  ["European", (d) =>
+    `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}` +
+    ` ${pad(d.getHours())}:${pad(d.getMinutes())}` +
+    `:${pad(d.getSeconds())}`, "EU", "--eu"],
+  ["US", (d) => d.toLocaleString("en-US"), "US", "--us"],
+  ["British", (d) => d.toLocaleString("en-GB"), "UK", "--uk"],
+  ["Japanese", (d) =>
+    `${d.getFullYear()}年${pad(d.getMonth() + 1)}月` +
+    `${pad(d.getDate())}日`, "JP", "--jp"],
+  ["CUSTOM", null],
+  ["Deploy tag", (d) =>
+    `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}` +
+    `-${pad(d.getHours())}${pad(d.getMinutes())}`, "FMT", "--custom"],
+];
+
+/* ── theme switcher ──────────────────────────────────────── */
+const root = document.documentElement;
+const themeHost = document.getElementById("themes");
+
+function applyTheme(theme, button) {
+  const vars = {
+    "--bg": theme.bg, "--surface": theme.surface, "--edge": theme.edge,
+    "--fg": theme.fg, "--dim": theme.dim, "--accent": theme.accent,
+    "--accent-ink": theme.bg,
+  };
+  for (const [key, value] of Object.entries(vars)) {
+    root.style.setProperty(key, value);
+  }
+  document.querySelectorAll("[data-sw]").forEach((el) => {
+    el.textContent = theme[el.dataset.sw];
+  });
+  themeHost.querySelectorAll("button").forEach((b) => {
+    b.setAttribute("aria-pressed", String(b === button));
+  });
+  paintSwatches(theme);
+}
+
+THEMES.forEach((theme, index) => {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "pill";
+  button.setAttribute("aria-pressed", String(index === 0));
+  const dot = document.createElement("span");
+  dot.className = "dot";
+  dot.style.background = theme.accent;
+  button.append(dot, document.createTextNode(theme.name));
+  button.addEventListener("click", () => {
+    applyTheme(theme, button);
+    track("Design theme selected", { theme: theme.name });
+  });
+  themeHost.appendChild(button);
+});
+
+/* ── swatches ────────────────────────────────────────────── */
+const swatchHost = document.getElementById("swatches");
+
+SWATCHES.forEach(([label, key, use]) => {
+  const cell = document.createElement("div");
+  cell.className = "swatch";
+  const chip = document.createElement("div");
+  chip.className = "swatch-chip";
+  chip.style.background = `var(--${key})`;
+  const body = document.createElement("div");
+  body.className = "swatch-body";
+  body.innerHTML =
+    `<p class="swatch-name"></p><p class="swatch-hex"></p>` +
+    `<p class="swatch-use"></p>`;
+  body.querySelector(".swatch-name").textContent = label;
+  body.querySelector(".swatch-hex").dataset.hex = key;
+  body.querySelector(".swatch-use").textContent = use;
+  cell.append(chip, body);
+  swatchHost.appendChild(cell);
+});
+
+function paintSwatches(theme) {
+  swatchHost.querySelectorAll("[data-hex]").forEach((el) => {
+    el.textContent = theme[el.dataset.hex];
+  });
+}
+paintSwatches(THEMES[0]);
+
+/* ── badge table ─────────────────────────────────────────── */
+const badgeHost = document.getElementById("badges-table");
+const head = document.createElement("div");
+head.className = "badge-row badge-head";
+["CHIP", "RETUNED", "WAS", "APPLIES TO"].forEach((t) => {
+  const s = document.createElement("span");
+  s.textContent = t;
+  head.appendChild(s);
+});
+badgeHost.appendChild(head);
+
+BADGES.forEach(([chip, cssVar, oklch, was, applies]) => {
+  const row = document.createElement("div");
+  row.className = "badge-row";
+  const pill = document.createElement("span");
+  pill.className = "chip";
+  pill.style.background = `var(${cssVar})`;
+  pill.textContent = chip;
+  const val = document.createElement("span");
+  val.textContent = oklch;
+  const old = document.createElement("span");
+  old.className = "badge-was";
+  const oldDot = document.createElement("span");
+  oldDot.className = "badge-dot";
+  oldDot.style.background = was;
+  old.append(oldDot, document.createTextNode(was));
+  const use = document.createElement("span");
+  use.textContent = applies;
+  row.append(pill, val, old, use);
+  badgeHost.appendChild(row);
+});
+
+/* ── live format panel ───────────────────────────────────── */
+const panelHost = document.getElementById("panel");
+const barTick = document.getElementById("bar-tick");
+const liveRows = [];
+
+PANEL.forEach(([label, fn, chip, cssVar, active]) => {
+  if (!fn) {
+    const sect = document.createElement("div");
+    sect.className = "panel-sect";
+    sect.textContent = `── ${label} ──`;
+    panelHost.appendChild(sect);
+    return;
+  }
+  const row = document.createElement("div");
+  row.className = "panel-row" + (active ? " is-active" : "");
+  const lbl = document.createElement("span");
+  lbl.className = "panel-lbl";
+  const pill = document.createElement("span");
+  pill.className = "chip";
+  pill.style.background = `var(${cssVar})`;
+  pill.textContent = chip;
+  lbl.append(pill, document.createTextNode(label));
+  const val = document.createElement("span");
+  val.className = "panel-val";
+  row.append(lbl, val);
+  row.addEventListener("click", () => {
+    track("Design format copied", { format: label });
+    navigator.clipboard.writeText(val.textContent).catch(() => {})
+      .finally(() => {
+        val.classList.add("is-copied");
+        setTimeout(() => val.classList.remove("is-copied"), 900);
+      });
+  });
+  panelHost.appendChild(row);
+  liveRows.push([fn, val]);
+});
+
+function tickRows() {
+  const d = new Date();
+  liveRows.forEach(([fn, el]) => { el.textContent = String(fn(d)); });
+  barTick.textContent = String(Math.floor(d.getTime() / 1000));
+}
+setInterval(tickRows, 250);
+tickRows();
+
+/* ── demo copy buttons ───────────────────────────────────── */
+document.querySelectorAll("[data-demo-copy]").forEach((button) => {
+  button.addEventListener("click", () => {
+    if (button.textContent === "ok") return;
+    track("Design snippet copied", {});
+    button.textContent = "ok";
+    setTimeout(() => { button.textContent = "copy"; }, 1200);
+  });
+});
+</script>
+</body>
+</html>

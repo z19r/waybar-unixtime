@@ -7,7 +7,7 @@
 <p align="center">
   Live unix timestamps in your Waybar. Themed by omarchy.
   <br>
-  <a href="https://z19r.github.io/waybar-unixtime/">
+  <a href="https://waybar-unixtime.z19r.com">
     Website</a> ·
   <a href="#install">Install</a> ·
   <a href="#theming">Theming</a>
