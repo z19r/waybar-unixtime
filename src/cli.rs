@@ -25,6 +25,12 @@ pub enum Command {
     },
     /// Flip the display format between seconds and milliseconds
     Toggle,
+    /// Step the display format through the whole list (scroll)
+    Cycle {
+        /// Step backwards instead
+        #[arg(long)]
+        back: bool,
+    },
     /// Set the display format shown in the bar
     Set {
         /// Format key (see `formats`) or custom:<strftime>

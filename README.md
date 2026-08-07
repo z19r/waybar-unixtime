@@ -65,8 +65,10 @@ and the module follows.
 - **Custom formats** — name your own strftime patterns in
   `~/.config/waybar-unixtime/config.toml`; they join the dropdown,
   tooltip, and picker
-- **Switchable display** — middle-click toggles seconds ⇄ millis;
-  `waybar-unixtime set iso-utc` (or any key) changes the bar text
+- **Switchable display** — scroll on the module (two-finger swipe
+  on touchpads) to cycle through every format; middle-click, if you
+  have one, toggles seconds ⇄ millis; `waybar-unixtime set iso-utc`
+  jumps straight to any key
 - **omarchy-native theming** — `waybar-unixtime css` reads the
   active theme's `colors.toml` and emits namespaced CSS
 - **Single static-ish binary** — Rust, no runtime deps
@@ -166,6 +168,7 @@ waybar-unixtime history       # recently copied values
 waybar-unixtime formats       # list all keys with live examples
 waybar-unixtime set FMT       # change the bar display format
 waybar-unixtime toggle        # flip seconds <-> milliseconds
+waybar-unixtime cycle [--back]# step through all formats (scroll)
 waybar-unixtime menu          # dropdown XML (--install to write)
 waybar-unixtime css           # themed CSS   (--install to write)
 waybar-unixtime snippet       # ready-to-paste waybar config

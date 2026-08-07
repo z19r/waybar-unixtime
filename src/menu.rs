@@ -102,6 +102,10 @@ pub fn snippet(binary: &str, customs: &[Custom]) -> String {
          \x20 \"on-click-right\": \"{binary} picker\",\n\
          \x20 \"on-click-middle\":\n\
          \x20   \"{binary} toggle && pkill -RTMIN+8 waybar\",\n\
+         \x20 \"on-scroll-up\":\n\
+         \x20   \"{binary} cycle && pkill -RTMIN+8 waybar\",\n\
+         \x20 \"on-scroll-down\":\n\
+         \x20   \"{binary} cycle --back && pkill -RTMIN+8 waybar\",\n\
          \x20 \"tooltip\": true\n\
          }}\n",
         binary = binary,

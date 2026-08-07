@@ -31,6 +31,7 @@ fn main() -> ExitCode {
         Command::Run(args) => run(&args),
         Command::Copy { format } => copy(format.as_deref()),
         Command::Toggle => toggle(),
+        Command::Cycle { back } => cycle(back),
         Command::Set { format } => set(&format),
         Command::Formats => list_formats(),
         Command::Convert { input } => convert_cmd(&input.join(" ")),
@@ -156,6 +157,13 @@ fn format_table(utc: chrono::DateTime<Utc>) -> String {
 
 fn toggle() -> Result<(), Box<dyn Error>> {
     let next = state::toggled(&state::format());
+    state::set_format(next)?;
+    eprintln!("display format: {next}");
+    Ok(())
+}
+
+fn cycle(back: bool) -> Result<(), Box<dyn Error>> {
+    let next = state::cycled(&state::format(), back);
     state::set_format(next)?;
     eprintln!("display format: {next}");
     Ok(())

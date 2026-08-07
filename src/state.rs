@@ -64,6 +64,23 @@ pub fn toggled(current: &str) -> &'static str {
     }
 }
 
+/// Step to the next/previous built-in format, wrapping around.
+/// Custom patterns re-enter the list at the start.
+pub fn cycled(current: &str, back: bool) -> &'static str {
+    let keys: Vec<&'static str> =
+        formats::SPECS.iter().map(|spec| spec.key).collect();
+    let Some(index) = keys.iter().position(|key| *key == current) else {
+        return keys[0];
+    };
+    let len = keys.len();
+    let next = if back {
+        (index + len - 1) % len
+    } else {
+        (index + 1) % len
+    };
+    keys[next]
+}
+
 /// CSS class for the current format (custom patterns share one).
 pub fn class(key: &str) -> String {
     if key.starts_with("custom:") {
@@ -82,6 +99,15 @@ mod tests {
         assert_eq!(toggled("seconds"), "millis");
         assert_eq!(toggled("millis"), "seconds");
         assert_eq!(toggled("iso-utc"), "seconds");
+    }
+
+    #[test]
+    fn cycle_steps_through_specs_and_wraps() {
+        assert_eq!(cycled("seconds", false), "millis");
+        assert_eq!(cycled("millis", true), "seconds");
+        assert_eq!(cycled("unix-readable", false), "seconds");
+        assert_eq!(cycled("seconds", true), "unix-readable");
+        assert_eq!(cycled("custom:%Y", false), "seconds");
     }
 
     #[test]

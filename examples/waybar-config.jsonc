@@ -37,9 +37,14 @@
     // Right-click: interactive picker (converter + history)
     // via walker/fuzzel/wofi/rofi dmenu.
     "on-click-right": "waybar-unixtime picker",
-    // Middle-click: toggle bar text seconds <-> milliseconds.
+    // Middle-click (if you have one): seconds <-> milliseconds.
     "on-click-middle":
       "waybar-unixtime toggle && pkill -RTMIN+8 waybar",
+    // Scroll / two-finger swipe: cycle through all formats.
+    "on-scroll-up":
+      "waybar-unixtime cycle && pkill -RTMIN+8 waybar",
+    "on-scroll-down":
+      "waybar-unixtime cycle --back && pkill -RTMIN+8 waybar",
     "tooltip": true
   }
 }
