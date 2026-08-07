@@ -218,11 +218,164 @@ your omarchy theme. Open source, one tiny Rust binary.">
   }
   .panel .row.copied .val { color: var(--accent); }
 
+  /* ── footer ──────────────────────────────────────────── */
   footer {
-    border-top: 1px solid var(--edge); padding: 36px 0 56px;
-    color: var(--dim); font-size: .8rem;
+    border-top: 1px solid var(--edge);
+    background: var(--bg);
+    color: var(--dim);
+    padding: 64px 0 40px;
+    position: relative;
+    overflow: hidden;
+    font-size: .8rem;
   }
   footer .heart { color: var(--accent); }
+  footer .wrap { position: relative; z-index: 1; }
+  .watermark {
+    position: absolute;
+    bottom: -96px;
+    right: -18px;
+    font-weight: 700;
+    font-size: clamp(100px, 17vw, 230px);
+    letter-spacing: -.06em;
+    color: var(--surface);
+    line-height: .85;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+    user-select: none;
+    z-index: 0;
+  }
+  .release-banner {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 20px;
+    border: 1px solid var(--edge);
+    border-radius: 12px;
+    background: var(--surface);
+    box-shadow: 0 12px 40px rgb(0 0 0 / .35);
+    padding: 16px 20px;
+    margin-bottom: 40px;
+  }
+  .release-banner .ver {
+    font-weight: 700;
+    font-size: 1.5rem;
+    letter-spacing: -.03em;
+    color: var(--accent);
+    background: var(--bg);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .release-banner .title {
+    font-weight: 700;
+    font-size: .95rem;
+    letter-spacing: -.02em;
+    color: var(--fg);
+  }
+  .release-banner .title .live { color: var(--accent); }
+  .release-banner .sub {
+    font-size: .68rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .rel-btn {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 8px 14px;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: filter .15s;
+  }
+  .rel-btn:hover { filter: brightness(1.12); color: var(--accent-ink); }
+  footer .row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 40px;
+    align-items: start;
+    margin-bottom: 40px;
+  }
+  footer .col h4 {
+    font-size: .68rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 500;
+    margin: 0 0 12px;
+  }
+  footer .col ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  footer .col ul a {
+    font-size: .78rem;
+    color: var(--dim);
+    text-decoration: none;
+    letter-spacing: .04em;
+    transition: color .15s;
+  }
+  footer .col ul a:hover { color: var(--accent); }
+  .footer-mark { display: flex; flex-direction: column; gap: 14px; }
+  .footer-mark .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    font-size: .95rem;
+    color: var(--fg);
+  }
+  .footer-mark .brand svg { width: 28px; height: 28px; flex: none; }
+  .footer-mark p { max-width: 380px; line-height: 1.6; }
+  .badges { display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge {
+    font-size: .62rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--dim);
+  }
+  .badge-live {
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+  }
+  .badge .pulse {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  footer .meta {
+    border-top: 1px solid var(--edge);
+    padding-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 18px;
+    font-size: .6rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+  @media (max-width: 760px) {
+    .release-banner { grid-template-columns: 1fr; }
+    footer .row { grid-template-columns: 1fr; gap: 28px; }
+    footer .meta { flex-direction: column; gap: 6px; }
+  }
 </style>
 </head>
 <body>
@@ -415,19 +568,107 @@ your omarchy theme. Open source, one tiny Rust binary.">
 </main>
 
 <footer>
-  <p>MIT licensed. Built with <span class="heart">&lt;3</span> for
-    the Hyprland crowd by
-    <a href="https://github.com/zackkitzmiller"
-      data-umami-event="Outbound link clicked"
-      data-umami-event-target="author"
-      data-umami-event-source="footer">@zackkitzmiller</a>.
-  </p>
-  <p>Not affiliated with waybar, Hyprland, or omarchy — just fond of
-    all three.</p>
-  <p><a href="/design/" data-umami-event="Nav link clicked"
-    data-umami-event-target="design-system"
-    data-umami-event-source="footer">design system</a> — the tokens and
-    components this page is built from.</p>
+  <div class="watermark" aria-hidden="true">1970</div>
+  <div class="wrap">
+
+    <div class="release-banner">
+      <span class="ver">v0.5.0</span>
+      <div>
+        <div class="title"><span class="live">SHIPPED</span> · cycle
+          subcommand + scroll bindings for format switching</div>
+        <div class="sub">aug 07 2026 · waybar-unixtime · MIT ·
+          sha 513892d</div>
+      </div>
+      <a class="rel-btn"
+        href="https://github.com/z19r/waybar-unixtime/releases"
+        target="_blank" rel="noreferrer"
+        data-umami-event="Outbound link clicked"
+        data-umami-event-target="releases"
+        data-umami-event-source="footer">Release notes →</a>
+    </div>
+
+    <div class="row">
+      <div class="col footer-mark">
+        <div class="brand">
+          <svg viewBox="0 0 256 256" aria-hidden="true">
+            <rect width="256" height="256" rx="56" fill="var(--surface)"/>
+            <rect x="70" y="52" width="22" height="128" rx="11"
+              fill="var(--accent)"/>
+            <rect x="118" y="52" width="68" height="128" rx="26"
+              fill="none" stroke="var(--accent)" stroke-width="22"/>
+            <rect x="70" y="196" width="116" height="14" rx="7"
+              fill="var(--dim)"/>
+          </svg>
+          waybar-unixtime
+        </div>
+        <p>Live unix timestamps in your Waybar, themed by your omarchy
+          theme. One Rust binary — 15 formats, a click dropdown, a
+          converter, and CSS generated from the active palette.</p>
+        <div class="badges">
+          <span class="badge badge-live"><span class="pulse"></span>
+            v0.5.0 · stable</span>
+          <span class="badge">MIT</span>
+          <span class="badge">Rust 2021</span>
+        </div>
+      </div>
+
+      <div class="col">
+        <h4>// project</h4>
+        <ul>
+          <li><a href="https://github.com/z19r/waybar-unixtime"
+            target="_blank" rel="noreferrer"
+            data-umami-event="Outbound link clicked"
+            data-umami-event-target="github-repo"
+            data-umami-event-source="footer"
+            >github.com/z19r/waybar-unixtime ↗</a></li>
+          <li><a href="https://github.com/z19r/waybar-unixtime/issues"
+            target="_blank" rel="noreferrer"
+            data-umami-event="Outbound link clicked"
+            data-umami-event-target="issues"
+            data-umami-event-source="footer">Issues ↗</a></li>
+          <li><a href="https://github.com/z19r/waybar-unixtime/releases"
+            target="_blank" rel="noreferrer"
+            data-umami-event="Outbound link clicked"
+            data-umami-event-target="releases"
+            data-umami-event-source="footer">Releases ↗</a></li>
+          <li><a
+            href="https://github.com/z19r/waybar-unixtime/blob/master/LICENSE"
+            target="_blank" rel="noreferrer"
+            data-umami-event="Outbound link clicked"
+            data-umami-event-target="license"
+            data-umami-event-source="footer">MIT License ↗</a></li>
+        </ul>
+      </div>
+
+      <div class="col">
+        <h4>// docs</h4>
+        <ul>
+          <li><a href="#panel" data-umami-event="Nav link clicked"
+            data-umami-event-target="formats"
+            data-umami-event-source="footer">Formats</a></li>
+          <li><a href="#install" data-umami-event="Nav link clicked"
+            data-umami-event-target="install"
+            data-umami-event-source="footer">Install</a></li>
+          <li><a href="#theming" data-umami-event="Nav link clicked"
+            data-umami-event-target="theming"
+            data-umami-event-source="footer">Theming</a></li>
+          <li><a href="#convert" data-umami-event="Nav link clicked"
+            data-umami-event-target="convert"
+            data-umami-event-source="footer">Convert</a></li>
+          <li><a href="/design/" data-umami-event="Nav link clicked"
+            data-umami-event-target="design-system"
+            data-umami-event-source="footer">Design system</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="meta">
+      <span>// waybar-unixtime · v0.5.0 · 2026</span>
+      <span>Made in Chicago, with <span class="heart">🫀</span> ©2026
+        z19r. All rights reserved.</span>
+      <span>Built in a shed · no telemetry</span>
+    </div>
+  </div>
 </footer>
 
 </div>
