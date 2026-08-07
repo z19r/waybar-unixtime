@@ -55,10 +55,18 @@ and the module follows.
 
 - **Panel tooltip** — hover shows every format with live values,
   grouped like the [UnixTime](https://unixtime.labor77.de/en) panel
-- **Switchable display** — right-click toggles seconds ⇄ millis;
-  `waybar-unixtime set iso-utc` (or any key, or
-  `custom:<strftime>`) changes what the bar shows
-- **Click to copy** — middle-click copies the displayed value
+- **Converter** — `waybar-unixtime convert 1786098721` (auto-detects
+  s/ms/µs/ns) or `convert "30.07.2026 12:34"` or
+  `convert "now +2h30m"` prints every format for that instant
+- **Interactive picker** — right-click opens a walker/fuzzel/wofi
+  dmenu with all formats, a free-text converter, and history
+- **History** — every copy is remembered (capped, configurable);
+  re-copy from the picker or `waybar-unixtime history`
+- **Custom formats** — name your own strftime patterns in
+  `~/.config/waybar-unixtime/config.toml`; they join the dropdown,
+  tooltip, and picker
+- **Switchable display** — middle-click toggles seconds ⇄ millis;
+  `waybar-unixtime set iso-utc` (or any key) changes the bar text
 - **omarchy-native theming** — `waybar-unixtime css` reads the
   active theme's `colors.toml` and emits namespaced CSS
 - **Single static-ish binary** — Rust, no runtime deps
@@ -152,6 +160,9 @@ module always renders.
 ```
 waybar-unixtime once          # one waybar JSON line (default)
 waybar-unixtime copy [FMT]    # print a timestamp in any format
+waybar-unixtime convert IN    # epoch/date/-> every format
+waybar-unixtime picker        # interactive dmenu panel
+waybar-unixtime history       # recently copied values
 waybar-unixtime formats       # list all keys with live examples
 waybar-unixtime set FMT       # change the bar display format
 waybar-unixtime toggle        # flip seconds <-> milliseconds
@@ -162,7 +173,26 @@ waybar-unixtime run           # streaming mode (waybar != 0.15.0)
 ```
 
 `FMT` is any key from `formats`, or `custom:<strftime>` — e.g.
-`waybar-unixtime copy "custom:%d.%m.%y %H:%M"`.
+`waybar-unixtime copy "custom:%d.%m.%y %H:%M"`. `IN` accepts an
+epoch in any precision, `now`, date strings (ISO / European / US),
+and an optional trailing offset: `convert "1786098721 -1d"`.
+
+## Settings
+
+`~/.config/waybar-unixtime/config.toml`:
+
+```toml
+default_format = "seconds"   # bar text before any set/toggle
+history_size = 50            # copied-value history (0 = off)
+
+[[custom]]                   # named custom formats
+name = "Deploy tag"
+format = "%Y%m%d-%H%M"
+```
+
+After adding custom formats, re-run `waybar-unixtime menu --install`
+and refresh the `menu-actions` block from `waybar-unixtime snippet`
+so the dropdown picks them up.
 
 ## Development
 

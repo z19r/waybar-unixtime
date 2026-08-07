@@ -1,6 +1,6 @@
 # Maintainer: Zack Kitzmiller <zackkitzmiller@gmail.com>
 pkgname=waybar-unixtime
-pkgver=0.2.0
+pkgver=0.3.0
 pkgrel=1
 pkgdesc="Live unix timestamps for Waybar, themed by your omarchy theme"
 arch=('x86_64' 'aarch64')

@@ -131,11 +131,16 @@ pub fn render(
 }
 
 /// Pango tooltip mirroring the UnixTime dropdown: every format with
-/// its live value, in two labelled sections.
-pub fn tooltip(utc: DateTime<Utc>, local: DateTime<Local>) -> String {
+/// its live value in labelled sections, plus any custom formats.
+pub fn tooltip(
+    utc: DateTime<Utc>,
+    local: DateTime<Local>,
+    customs: &[crate::config::Custom],
+) -> String {
     let width = SPECS
         .iter()
         .map(|spec| spec.label.chars().count())
+        .chain(customs.iter().map(|c| c.name.chars().count()))
         .max()
         .unwrap_or(0);
     let mut out = String::from("<tt>");
@@ -155,6 +160,15 @@ pub fn tooltip(utc: DateTime<Utc>, local: DateTime<Local>) -> String {
         let value = render(spec.key, utc, local).unwrap_or_default();
         let pad = " ".repeat(width - spec.label.chars().count() + 2);
         out.push_str(&format!("{}{}{}\n", spec.label, pad, value));
+    }
+    if !customs.is_empty() {
+        out.push_str("\n<b>── CUSTOM ──</b>\n");
+        for custom in customs {
+            let key = format!("custom:{}", custom.format);
+            let value = render(&key, utc, local).unwrap_or_default();
+            let pad = " ".repeat(width - custom.name.chars().count() + 2);
+            out.push_str(&format!("{}{}{}\n", custom.name, pad, value));
+        }
     }
     out.push_str("</tt>");
     out
@@ -228,7 +242,13 @@ mod tests {
     #[test]
     fn tooltip_lists_both_sections_and_all_labels() {
         let (utc, local) = at();
-        let tip = tooltip(utc, local);
+        let customs = vec![crate::config::Custom {
+            name: String::from("Deploy tag"),
+            format: String::from("%Y%m%d-%H%M"),
+        }];
+        let tip = tooltip(utc, local, &customs);
+        assert!(tip.contains("CUSTOM"));
+        assert!(tip.contains("Deploy tag"));
         assert!(tip.contains("TIMESTAMP"));
         assert!(tip.contains("DATE FORMATS"));
         for spec in SPECS {

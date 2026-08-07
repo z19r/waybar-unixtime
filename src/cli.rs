@@ -32,6 +32,19 @@ pub enum Command {
     },
     /// List all format keys with live example output
     Formats,
+    /// Convert an epoch or date string into every format
+    Convert {
+        /// e.g. 1786098721, "2026-08-07 10:00", now, "now +2h30m"
+        input: Vec<String>,
+    },
+    /// Show recently copied timestamps (newest first)
+    History {
+        /// Max entries to show
+        #[arg(long, default_value_t = 20)]
+        limit: usize,
+    },
+    /// Interactive panel via walker/fuzzel/wofi/rofi dmenu
+    Picker,
     /// Generate the click dropdown menu XML
     Menu(InstallArgs),
     /// Generate module CSS from the active omarchy theme

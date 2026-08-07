@@ -6,6 +6,11 @@ use crate::formats;
 
 pub const DEFAULT_FORMAT: &str = "seconds";
 
+/// Serializes tests that mutate the process-global state-dir env
+/// var; cargo runs tests in parallel threads.
+#[cfg(test)]
+pub static TEST_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 /// Where the selected display format is persisted.
 ///
 /// Honors `WAYBAR_UNIXTIME_STATE_DIR` (tests), then `XDG_STATE_HOME`,
@@ -21,13 +26,21 @@ fn state_file() -> Option<PathBuf> {
     Some(base.join("waybar-unixtime/format"))
 }
 
-/// Current display format, falling back to seconds.
+/// Current display format, falling back to the configured default
+/// (Settings tab), then to seconds.
 pub fn format() -> String {
     state_file()
         .and_then(|path| fs::read_to_string(path).ok())
         .map(|raw| raw.trim().to_string())
         .filter(|key| formats::is_valid_key(key))
-        .unwrap_or_else(|| DEFAULT_FORMAT.to_string())
+        .unwrap_or_else(|| {
+            let configured = crate::config::load().default_format;
+            if formats::is_valid_key(&configured) {
+                configured
+            } else {
+                DEFAULT_FORMAT.to_string()
+            }
+        })
 }
 
 /// Persist a new display format.
@@ -81,6 +94,7 @@ mod tests {
     // tests sharing WAYBAR_UNIXTIME_STATE_DIR would race each other.
     #[test]
     fn state_dir_roundtrip_and_invalid_fallback() {
+        let _guard = TEST_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let dir = std::env::temp_dir().join("wut-state-test");
         env::set_var("WAYBAR_UNIXTIME_STATE_DIR", &dir);
 

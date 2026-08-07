@@ -1,7 +1,11 @@
 mod cli;
+mod config;
+mod convert;
 mod formats;
+mod history;
 mod menu;
 mod output;
+mod picker;
 mod state;
 mod theme;
 
@@ -29,6 +33,9 @@ fn main() -> ExitCode {
         Command::Toggle => toggle(),
         Command::Set { format } => set(&format),
         Command::Formats => list_formats(),
+        Command::Convert { input } => convert_cmd(&input.join(" ")),
+        Command::History { limit } => history_cmd(limit),
+        Command::Picker => picker::run(),
         Command::Menu(args) => menu_cmd(&args),
         Command::Css(args) => css(&args),
         Command::Snippet => snippet(),
@@ -84,7 +91,67 @@ fn copy(format: Option<&str>) -> Result<(), Box<dyn Error>> {
     let utc = Utc::now();
     let value = formats::render(&key, utc, utc.with_timezone(&Local))
         .ok_or_else(|| format!("unknown format: {key}"))?;
+    let entry = history::Entry {
+        at: utc.timestamp(),
+        format: key,
+        value: value.clone(),
+    };
+    let _ = history::record(&entry, config::load().history_size);
     print_all(&format!("{value}\n"))
+}
+
+/// Render every format for a parsed instant — the "Date & Time" tab.
+fn convert_cmd(input: &str) -> Result<(), Box<dyn Error>> {
+    let instant = picker::parse_input(input.trim())
+        .ok_or_else(|| format!("cannot parse: {input}"))?;
+    print_all(&format_table(instant))
+}
+
+fn history_cmd(limit: usize) -> Result<(), Box<dyn Error>> {
+    let entries = history::list(limit);
+    if entries.is_empty() {
+        return print_all("history is empty\n");
+    }
+    let mut out = String::new();
+    for entry in entries {
+        out.push_str(&format!(
+            "{}  {}  ({})\n",
+            entry.value, entry.format, entry.at,
+        ));
+    }
+    print_all(&out)
+}
+
+fn format_table(utc: chrono::DateTime<Utc>) -> String {
+    let local = utc.with_timezone(&Local);
+    let customs = config::load().customs;
+    let width = formats::SPECS
+        .iter()
+        .map(|spec| spec.key.len())
+        .chain(customs.iter().map(|c| c.name.chars().count()))
+        .max()
+        .unwrap_or(0);
+    let mut out = String::new();
+    for spec in formats::SPECS {
+        let value = formats::render(spec.key, utc, local).unwrap_or_default();
+        out.push_str(&format!(
+            "{:width$}  {}\n",
+            spec.key,
+            value,
+            width = width
+        ));
+    }
+    for custom in customs {
+        let key = format!("custom:{}", custom.format);
+        let value = formats::render(&key, utc, local).unwrap_or_default();
+        out.push_str(&format!(
+            "{:width$}  {}\n",
+            custom.name,
+            value,
+            width = width
+        ));
+    }
+    out
 }
 
 fn toggle() -> Result<(), Box<dyn Error>> {
@@ -133,7 +200,8 @@ fn list_formats() -> Result<(), Box<dyn Error>> {
 }
 
 fn menu_cmd(args: &InstallArgs) -> Result<(), Box<dyn Error>> {
-    write_or_print(args, "unixtime-menu.xml", &menu::xml())
+    let xml = menu::xml(&config::load().customs);
+    write_or_print(args, "unixtime-menu.xml", &xml)
 }
 
 fn css(args: &InstallArgs) -> Result<(), Box<dyn Error>> {
@@ -145,7 +213,7 @@ fn snippet() -> Result<(), Box<dyn Error>> {
     let binary = std::env::current_exe()
         .map(|path| path.display().to_string())
         .unwrap_or_else(|_| String::from("waybar-unixtime"));
-    print_all(&menu::snippet(&binary))
+    print_all(&menu::snippet(&binary, &config::load().customs))
 }
 
 fn write_or_print(

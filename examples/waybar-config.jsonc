@@ -34,11 +34,12 @@
       "unix-readable":
         "waybar-unixtime copy unix-readable | wl-copy"
     },
-    // Right-click: toggle bar text seconds <-> milliseconds.
-    "on-click-right":
+    // Right-click: interactive picker (converter + history)
+    // via walker/fuzzel/wofi/rofi dmenu.
+    "on-click-right": "waybar-unixtime picker",
+    // Middle-click: toggle bar text seconds <-> milliseconds.
+    "on-click-middle":
       "waybar-unixtime toggle && pkill -RTMIN+8 waybar",
-    // Middle-click: copy whatever the bar currently shows.
-    "on-click-middle": "waybar-unixtime copy | wl-copy",
     "tooltip": true
   }
 }

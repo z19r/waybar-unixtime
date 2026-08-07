@@ -1,7 +1,7 @@
 use chrono::{Local, Utc};
 use serde::Serialize;
 
-use crate::{formats, state};
+use crate::{config, formats, state};
 
 /// One line of waybar custom-module JSON output.
 #[derive(Serialize, Debug, PartialEq, Eq)]
@@ -23,7 +23,7 @@ impl Line {
         Line {
             text: formats::render(key, utc, local)
                 .unwrap_or_else(|| String::from("?")),
-            tooltip: formats::tooltip(utc, local),
+            tooltip: formats::tooltip(utc, local, &config::load().customs),
             class: state::class(key),
         }
     }
