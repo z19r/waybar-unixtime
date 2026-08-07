@@ -13,6 +13,8 @@ your omarchy theme. Open source, one tiny Rust binary.">
  y='52' width='22' height='128' rx='11' fill='%23c9a554'/%3E%3Crect
  x='118' y='52' width='68' height='128' rx='26' fill='none'
  stroke='%23c9a554' stroke-width='22'/%3E%3C/svg%3E">
+<script defer src="https://cloud.umami.is/script.js"
+  data-website-id="1039023f-755a-4aed-bbfc-90f6b4121681"></script>
 <style>
   :root {
     --bg: #16161c;
@@ -238,12 +240,18 @@ your omarchy theme. Open source, one tiny Rust binary.">
   </svg>
   <span class="name">waybar-unixtime</span>
   <nav aria-label="Main navigation">
-    <a href="#panel">formats</a>
-    <a href="#install">install</a>
-    <a href="#theming">theming</a>
-    <a href="#convert">convert</a>
-    <a href="https://github.com/z19r/waybar-unixtime">
-      github</a>
+    <a href="#panel" data-umami-event="Nav link clicked"
+      data-umami-event-target="formats">formats</a>
+    <a href="#install" data-umami-event="Nav link clicked"
+      data-umami-event-target="install">install</a>
+    <a href="#theming" data-umami-event="Nav link clicked"
+      data-umami-event-target="theming">theming</a>
+    <a href="#convert" data-umami-event="Nav link clicked"
+      data-umami-event-target="convert">convert</a>
+    <a href="https://github.com/z19r/waybar-unixtime"
+      data-umami-event="Outbound link clicked"
+      data-umami-event-target="github-repo"
+      data-umami-event-source="nav">github</a>
   </nav>
 </header>
 
@@ -328,9 +336,13 @@ your omarchy theme. Open source, one tiny Rust binary.">
 <section id="install" aria-labelledby="install-heading">
   <h2 id="install-heading">install</h2>
   <pre><button class="copy" data-copy="cargo install waybar-unixtime"
+ data-umami-event="Install snippet copied"
+ data-umami-event-snippet="cargo"
 >copy</button><span class="c"># cargo</span>
 <span class="a">cargo</span> install waybar-unixtime</pre>
   <pre><button class="copy" data-copy-id="aur"
+ data-umami-event="Install snippet copied"
+ data-umami-event-snippet="aur"
 >copy</button><span class="c"># arch, the honest way</span>
 <span class="a">git</span> clone \
   https://github.com/z19r/waybar-unixtime
@@ -364,7 +376,9 @@ your omarchy theme. Open source, one tiny Rust binary.">
     writes namespaced CSS. This page is doing the same trick — hit
     the theme buttons above.</p>
   <pre style="margin-top:22px"><button class="copy"
- data-copy="waybar-unixtime css --install">copy</button><span
+ data-copy="waybar-unixtime css --install"
+ data-umami-event="Install snippet copied"
+ data-umami-event-snippet="css-install">copy</button><span
  class="c"># generate + install for the active theme</span>
 <span class="a">waybar-unixtime</span> css --install</pre>
   <pre><span class="c">/* generated: unixtime.css */</span>
@@ -403,7 +417,10 @@ your omarchy theme. Open source, one tiny Rust binary.">
 <footer>
   <p>MIT licensed. Built with <span class="heart">&lt;3</span> for
     the Hyprland crowd by
-    <a href="https://github.com/zackkitzmiller">@zackkitzmiller</a>.
+    <a href="https://github.com/zackkitzmiller"
+      data-umami-event="Outbound link clicked"
+      data-umami-event-target="author"
+      data-umami-event-source="footer">@zackkitzmiller</a>.
   </p>
   <p>Not affiliated with waybar, Hyprland, or omarchy — just fond of
     all three.</p>
@@ -412,6 +429,19 @@ your omarchy theme. Open source, one tiny Rust binary.">
 </div>
 <script>
 "use strict";
+
+/* ── analytics ───────────────────────────────────────────── */
+/* Elements built at runtime can't carry data-umami-event, so they
+   call track() instead. Stays silent if umami is blocked or slow. */
+function track(name, data) {
+  const u = window.umami;
+  if (!u || typeof u.track !== "function") return;
+  try {
+    u.track(name, data);
+  } catch (_) {
+    /* analytics must never break the page */
+  }
+}
 
 /* ── live epoch ──────────────────────────────────────────── */
 const tick = document.getElementById("tick");
@@ -438,9 +468,15 @@ setInterval(render, 125);
 render();
 
 card.addEventListener("click", () => {
+  /* Track the click, not the clipboard promise — writeText rejects on
+     denied permission, which would drop the event silently. */
+  track("Hero epoch copied", { unit: millis ? "ms" : "seconds" });
+  const hint = document.getElementById("hint");
   navigator.clipboard.writeText(tick.textContent).then(() => {
-    const hint = document.getElementById("hint");
     hint.textContent = "copied!";
+  }).catch(() => {
+    hint.textContent = "copy blocked — select it manually";
+  }).finally(() => {
     setTimeout(() => {
       hint.textContent = "click to copy · c toggles ms";
     }, 1200);
@@ -451,6 +487,7 @@ document.addEventListener("keydown", (e) => {
       document.activeElement.tagName !== "INPUT") {
     millis = !millis;
     render();
+    track("Hero unit toggled", { unit: millis ? "ms" : "seconds" });
   }
 });
 
@@ -506,7 +543,10 @@ THEMES.forEach((theme, index) => {
   dot.className = "dot";
   dot.style.background = theme.accent;
   button.append(dot, document.createTextNode(theme.name));
-  button.addEventListener("click", () => applyTheme(theme, button));
+  button.addEventListener("click", () => {
+    applyTheme(theme, button);
+    track("Theme preview selected", { theme: theme.name });
+  });
   group.appendChild(button);
 });
 
@@ -570,10 +610,12 @@ FORMATS.forEach(([label, fn, badge]) => {
   val.className = "val";
   row.append(lbl, val);
   row.addEventListener("click", () => {
-    navigator.clipboard.writeText(val.textContent).then(() => {
-      row.classList.add("copied");
-      setTimeout(() => row.classList.remove("copied"), 900);
-    });
+    track("Format row copied", { format: label });
+    navigator.clipboard.writeText(val.textContent).catch(() => {})
+      .finally(() => {
+        row.classList.add("copied");
+        setTimeout(() => row.classList.remove("copied"), 900);
+      });
   });
   panel.appendChild(row);
   liveRows.push([fn, val]);
@@ -597,19 +639,39 @@ document.querySelectorAll("pre .copy").forEach((button) => {
       SNIPPETS[button.dataset.copyId] || "";
     navigator.clipboard.writeText(text).then(() => {
       button.textContent = "ok";
+    }).catch(() => {
+      button.textContent = "blocked";
+    }).finally(() => {
       setTimeout(() => { button.textContent = "copy"; }, 1200);
     });
   });
 });
 
 /* ── converter ───────────────────────────────────────────── */
+/* Debounced so a 10-character paste is one event, not ten. */
+const convTimers = {};
+function trackConversion(direction, ok) {
+  clearTimeout(convTimers[direction]);
+  convTimers[direction] = setTimeout(() => {
+    track("Converter used", {
+      direction: direction,
+      result: ok ? "ok" : "invalid",
+    });
+  }, 900);
+}
+
 const tsIn = document.getElementById("ts-in");
 const tsOut = document.getElementById("ts-out");
 tsIn.addEventListener("input", () => {
   const raw = tsIn.value.trim();
-  if (!raw) { tsOut.textContent = ""; return; }
+  if (!raw) {
+    tsOut.textContent = "";
+    clearTimeout(convTimers["epoch-to-human"]);
+    return;
+  }
   if (!/^\d+$/.test(raw)) {
     tsOut.textContent = "digits only";
+    trackConversion("epoch-to-human", false);
     return;
   }
   const n = Number(raw);
@@ -617,24 +679,32 @@ tsIn.addEventListener("input", () => {
   const d = new Date(ms);
   if (Number.isNaN(d.getTime())) {
     tsOut.textContent = "out of range";
+    trackConversion("epoch-to-human", false);
     return;
   }
   tsOut.textContent =
     d.toISOString().replace("T", " ").replace(".000Z", " UTC");
+  trackConversion("epoch-to-human", true);
 });
 
 const dateIn = document.getElementById("date-in");
 const dateOut = document.getElementById("date-out");
 dateIn.addEventListener("input", () => {
   const raw = dateIn.value.trim();
-  if (!raw) { dateOut.textContent = ""; return; }
+  if (!raw) {
+    dateOut.textContent = "";
+    clearTimeout(convTimers["human-to-epoch"]);
+    return;
+  }
   const ms = Date.parse(raw);
   if (Number.isNaN(ms)) {
     dateOut.textContent = "unparseable — try 2026-08-07 10:01";
+    trackConversion("human-to-epoch", false);
     return;
   }
   dateOut.textContent =
     Math.floor(ms / 1000) + " s  ·  " + ms + " ms";
+  trackConversion("human-to-epoch", true);
 });
 </script>
 </body>
