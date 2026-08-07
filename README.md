@@ -7,7 +7,7 @@
 <p align="center">
   Live unix timestamps in your Waybar. Themed by omarchy.
   <br>
-  <a href="https://zackkitzmiller.github.io/waybar-unixtime/">
+  <a href="https://z19r.github.io/waybar-unixtime/">
     Website</a> ·
   <a href="#install">Install</a> ·
   <a href="#theming">Theming</a>
@@ -15,9 +15,9 @@
 
 <p align="center">
   <a
-    href="https://github.com/zackkitzmiller/waybar-unixtime/actions"
+    href="https://github.com/z19r/waybar-unixtime/actions"
     ><img
-    src="https://github.com/zackkitzmiller/waybar-unixtime/actions/workflows/ci.yml/badge.svg"
+    src="https://github.com/z19r/waybar-unixtime/actions/workflows/ci.yml/badge.svg"
     alt="CI"></a>
   <a href="https://crates.io/crates/waybar-unixtime"><img
     src="https://img.shields.io/crates/v/waybar-unixtime.svg"
@@ -30,23 +30,37 @@
 ---
 
 The current unix timestamp, ticking every second, right in your bar.
-Left-click copies it. Right-click flips to milliseconds. The colors
-come from whatever [omarchy](https://omarchy.org) theme you're
-running — switch themes and the module follows.
+Left-click opens a dropdown of every format — seconds, millis,
+micros, nanos, ISO 8601, European, US, British, Japanese, RFC 2822 —
+and clicking one copies it. The colors come from whatever
+[omarchy](https://omarchy.org) theme you're running — switch themes
+and the module follows.
 
 ```
-… 🕓 1786096903 …
+… 1786096903 …
 ```
 
 ## Features
 
-- **Live epoch** — streams waybar JSON once a second (continuous
-  `exec` mode, one tiny process, no polling scripts)
-- **Seconds ⇄ milliseconds** — toggle at runtime with `SIGUSR1`
-- **Click to copy** — `waybar-unixtime copy | wl-copy`
-- **Rich tooltip** — epoch, UTC, local time, and ISO 8601 at a glance
-- **omarchy-native theming** — `waybar-unixtime css` reads the active
-  theme's `colors.toml` and emits namespaced `@define-color` CSS
+- **Live epoch** — ticking every second in the bar
+- **Format dropdown** — left-click opens a menu of 15 formats;
+  each entry copies its current value to the clipboard:
+
+  | Timestamp | Date formats |
+  |-----------|--------------|
+  | Seconds | ISO 8601 UTC / local / date |
+  | Milliseconds | European (+ short) |
+  | Microseconds | US (+ short), British |
+  | Nanoseconds | Japanese, RFC 2822, Unix readable |
+
+- **Panel tooltip** — hover shows every format with live values,
+  grouped like the [UnixTime](https://unixtime.labor77.de/en) panel
+- **Switchable display** — right-click toggles seconds ⇄ millis;
+  `waybar-unixtime set iso-utc` (or any key, or
+  `custom:<strftime>`) changes what the bar shows
+- **Click to copy** — middle-click copies the displayed value
+- **omarchy-native theming** — `waybar-unixtime css` reads the
+  active theme's `colors.toml` and emits namespaced CSS
 - **Single static-ish binary** — Rust, no runtime deps
 
 ## Install
@@ -54,7 +68,7 @@ running — switch themes and the module follows.
 ### Arch (AUR-style)
 
 ```sh
-git clone https://github.com/zackkitzmiller/waybar-unixtime
+git clone https://github.com/z19r/waybar-unixtime
 cd waybar-unixtime/packaging/aur && makepkg -si
 ```
 
@@ -67,7 +81,7 @@ cargo install waybar-unixtime
 ### Prebuilt binaries
 
 Grab a tarball for `x86_64` or `aarch64` Linux from the
-[releases page](https://github.com/zackkitzmiller/waybar-unixtime/releases),
+[releases page](https://github.com/z19r/waybar-unixtime/releases),
 verify against `SHA256SUMS.txt`, drop the binary in your `$PATH`.
 
 ### From source
@@ -78,23 +92,23 @@ just install   # cargo install + generates themed CSS
 
 ## Waybar setup
 
-Add the module (full example in
-[`examples/waybar-config.jsonc`](examples/waybar-config.jsonc)):
+Print a ready-to-paste module block (with dropdown menu wired up)
+and add it to your waybar config:
 
-```jsonc
-"custom/unixtime": {
-  "exec": "waybar-unixtime",
-  "return-type": "json",
-  "restart-interval": 1,
-  "on-click": "waybar-unixtime copy | wl-copy",
-  "on-click-right": "pkill -USR1 -x waybar-unixtime"
-}
+```sh
+waybar-unixtime snippet
 ```
+
+Full example in
+[`examples/waybar-config.jsonc`](examples/waybar-config.jsonc).
+Note: use polling (`once` + `"interval": 1`) — waybar 0.15.0 does
+not render bars whose custom modules stream continuously.
 
 Put `"custom/unixtime"` in `modules-right` (or wherever), then:
 
 ```sh
-waybar-unixtime css --install   # writes ~/.config/waybar/unixtime.css
+waybar-unixtime css --install    # themed unixtime.css
+waybar-unixtime menu --install   # dropdown unixtime-menu.xml
 ```
 
 and add to the top of your waybar `style.css`:
@@ -136,14 +150,19 @@ module always renders.
 ## CLI
 
 ```
-waybar-unixtime            # stream JSON lines forever (default)
-waybar-unixtime once       # single JSON line
-waybar-unixtime copy       # bare timestamp (pipe to wl-copy)
-waybar-unixtime css        # themed CSS to stdout
-waybar-unixtime css --install
-       --millis            # start in milliseconds mode
-       --interval <ms>     # tick rate, 50..=3600000 (default 1000)
+waybar-unixtime once          # one waybar JSON line (default)
+waybar-unixtime copy [FMT]    # print a timestamp in any format
+waybar-unixtime formats       # list all keys with live examples
+waybar-unixtime set FMT       # change the bar display format
+waybar-unixtime toggle        # flip seconds <-> milliseconds
+waybar-unixtime menu          # dropdown XML (--install to write)
+waybar-unixtime css           # themed CSS   (--install to write)
+waybar-unixtime snippet       # ready-to-paste waybar config
+waybar-unixtime run           # streaming mode (waybar != 0.15.0)
 ```
+
+`FMT` is any key from `formats`, or `custom:<strftime>` — e.g.
+`waybar-unixtime copy "custom:%d.%m.%y %H:%M"`.
 
 ## Development
 

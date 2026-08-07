@@ -14,30 +14,42 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    /// Stream waybar JSON lines forever (default command)
+    /// Print a single waybar JSON line and exit (use with interval)
+    Once,
+    /// Stream waybar JSON lines forever (continuous exec mode)
     Run(RunArgs),
-    /// Print a single waybar JSON line and exit
-    Once(RunArgs),
-    /// Print the current timestamp (pipe it to wl-copy)
-    Copy(RunArgs),
+    /// Print a timestamp in FORMAT (default: current display format)
+    Copy {
+        /// Format key (see `formats`) or custom:<strftime>
+        format: Option<String>,
+    },
+    /// Flip the display format between seconds and milliseconds
+    Toggle,
+    /// Set the display format shown in the bar
+    Set {
+        /// Format key (see `formats`) or custom:<strftime>
+        format: String,
+    },
+    /// List all format keys with live example output
+    Formats,
+    /// Generate the click dropdown menu XML
+    Menu(InstallArgs),
     /// Generate module CSS from the active omarchy theme
-    Css(CssArgs),
+    Css(InstallArgs),
+    /// Print a ready-to-paste waybar module config
+    Snippet,
 }
 
 #[derive(Args, Debug, Default, Clone)]
 pub struct RunArgs {
-    /// Start in milliseconds mode instead of seconds
-    #[arg(long)]
-    pub millis: bool,
-
     /// Refresh interval in milliseconds
     #[arg(long, default_value_t = 1000, value_parser = interval_range)]
     pub interval: u64,
 }
 
 #[derive(Args, Debug, Default)]
-pub struct CssArgs {
-    /// Write to ~/.config/waybar/unixtime.css instead of stdout
+pub struct InstallArgs {
+    /// Write into ~/.config/waybar/ instead of stdout
     #[arg(long)]
     pub install: bool,
 }
@@ -56,25 +68,28 @@ mod tests {
     use super::*;
 
     #[test]
-    fn defaults_to_streaming_run_with_one_second_interval() {
+    fn defaults_to_no_subcommand() {
         let cli = Cli::parse_from(["waybar-unixtime"]);
         assert!(cli.command.is_none());
     }
 
     #[test]
-    fn parses_run_with_millis_and_interval() {
-        let cli = Cli::parse_from([
-            "waybar-unixtime",
-            "run",
-            "--millis",
-            "--interval",
-            "250",
-        ]);
+    fn parses_copy_with_format_argument() {
+        let cli = Cli::parse_from(["waybar-unixtime", "copy", "iso-utc"]);
         match cli.command {
-            Some(Command::Run(args)) => {
-                assert!(args.millis);
-                assert_eq!(args.interval, 250);
+            Some(Command::Copy { format }) => {
+                assert_eq!(format.as_deref(), Some("iso-utc"));
             }
+            other => panic!("expected copy, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn parses_run_with_interval() {
+        let cli =
+            Cli::parse_from(["waybar-unixtime", "run", "--interval", "250"]);
+        match cli.command {
+            Some(Command::Run(args)) => assert_eq!(args.interval, 250),
             other => panic!("expected run, got {other:?}"),
         }
     }

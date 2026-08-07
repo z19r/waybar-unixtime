@@ -1,12 +1,12 @@
 [package]
 name = "waybar-unixtime"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.74"
 description = "Live unix timestamps for Waybar, themed by your omarchy theme"
 license = "MIT"
-repository = "https://github.com/zackkitzmiller/waybar-unixtime"
-homepage = "https://github.com/zackkitzmiller/waybar-unixtime"
+repository = "https://github.com/z19r/waybar-unixtime"
+homepage = "https://github.com/z19r/waybar-unixtime"
 keywords = ["waybar", "hyprland", "unix-time", "omarchy", "statusbar"]
 categories = ["command-line-utilities", "date-and-time"]
 readme = "README.md"

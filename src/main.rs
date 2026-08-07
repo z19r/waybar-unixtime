@@ -1,6 +1,8 @@
 mod cli;
-mod clock;
+mod formats;
+mod menu;
 mod output;
+mod state;
 mod theme;
 
 use std::error::Error;
@@ -8,33 +10,32 @@ use std::fs;
 use std::io::{self, Write};
 use std::path::PathBuf;
 use std::process::ExitCode;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-use chrono::Utc;
+use chrono::{Local, Utc};
 use clap::Parser;
-use signal_hook::consts::signal::SIGUSR1;
 
-use cli::{Cli, Command, CssArgs, RunArgs};
-use clock::Format;
+use cli::{Cli, Command, InstallArgs, RunArgs};
 use output::Line;
-
-/// Poll granularity for signal handling inside the tick loop.
-const POLL_MS: u64 = 100;
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
-    let command = cli.command.unwrap_or(Command::Run(RunArgs::default()));
+    let command = cli.command.unwrap_or(Command::Once);
     let result = match command {
+        Command::Once => once(),
         Command::Run(args) => run(&args),
-        Command::Once(args) => once(&args),
-        Command::Copy(args) => copy(&args),
+        Command::Copy { format } => copy(format.as_deref()),
+        Command::Toggle => toggle(),
+        Command::Set { format } => set(&format),
+        Command::Formats => list_formats(),
+        Command::Menu(args) => menu_cmd(&args),
         Command::Css(args) => css(&args),
+        Command::Snippet => snippet(),
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,
+        Err(err) if is_broken_pipe(err.as_ref()) => ExitCode::SUCCESS,
         Err(err) => {
             eprintln!("waybar-unixtime: {err}");
             ExitCode::FAILURE
@@ -42,70 +43,129 @@ fn main() -> ExitCode {
     }
 }
 
-fn start_format(args: &RunArgs) -> Format {
-    if args.millis {
-        Format::Millis
-    } else {
-        Format::Seconds
-    }
+/// Downstream closing the pipe (`... | head`) is not an error.
+fn is_broken_pipe(err: &(dyn Error + 'static)) -> bool {
+    err.downcast_ref::<io::Error>()
+        .is_some_and(|e| e.kind() == io::ErrorKind::BrokenPipe)
 }
 
-fn emit(format: Format) -> Result<(), Box<dyn Error>> {
+fn print_all(content: &str) -> Result<(), Box<dyn Error>> {
     let mut stdout = io::stdout().lock();
-    writeln!(stdout, "{}", Line::now(format).to_json())?;
+    stdout.write_all(content.as_bytes())?;
     stdout.flush()?;
     Ok(())
 }
 
-/// Stream JSON lines forever; SIGUSR1 toggles seconds <-> millis.
-fn run(args: &RunArgs) -> Result<(), Box<dyn Error>> {
-    let toggle = Arc::new(AtomicBool::new(false));
-    signal_hook::flag::register(SIGUSR1, Arc::clone(&toggle))?;
-
-    let mut format = start_format(args);
-    loop {
-        emit(format)?;
-        let mut slept = 0;
-        while slept < args.interval {
-            thread::sleep(Duration::from_millis(
-                POLL_MS.min(args.interval - slept),
-            ));
-            slept += POLL_MS;
-            if toggle.swap(false, Ordering::Relaxed) {
-                format = format.toggled();
-                break;
-            }
-        }
-    }
-}
-
-fn once(args: &RunArgs) -> Result<(), Box<dyn Error>> {
-    emit(start_format(args))
-}
-
-/// Print the raw timestamp for piping into a clipboard tool.
-fn copy(args: &RunArgs) -> Result<(), Box<dyn Error>> {
-    println!("{}", clock::text(Utc::now(), start_format(args)));
+fn emit() -> Result<(), Box<dyn Error>> {
+    let mut stdout = io::stdout().lock();
+    writeln!(stdout, "{}", Line::now().to_json())?;
+    stdout.flush()?;
     Ok(())
 }
 
-fn css(args: &CssArgs) -> Result<(), Box<dyn Error>> {
-    let stylesheet = theme::css(&theme::load());
-    if !args.install {
-        print!("{stylesheet}");
-        return Ok(());
+fn once() -> Result<(), Box<dyn Error>> {
+    emit()
+}
+
+/// Continuous mode for waybar versions that render streaming
+/// custom modules correctly (0.15.0 does not — prefer `once`).
+fn run(args: &RunArgs) -> Result<(), Box<dyn Error>> {
+    loop {
+        emit()?;
+        thread::sleep(Duration::from_millis(args.interval));
     }
-    let target = css_target()?;
+}
+
+fn copy(format: Option<&str>) -> Result<(), Box<dyn Error>> {
+    let key = match format {
+        Some(key) => key.to_string(),
+        None => state::format(),
+    };
+    let utc = Utc::now();
+    let value = formats::render(&key, utc, utc.with_timezone(&Local))
+        .ok_or_else(|| format!("unknown format: {key}"))?;
+    print_all(&format!("{value}\n"))
+}
+
+fn toggle() -> Result<(), Box<dyn Error>> {
+    let next = state::toggled(&state::format());
+    state::set_format(next)?;
+    eprintln!("display format: {next}");
+    Ok(())
+}
+
+fn set(format: &str) -> Result<(), Box<dyn Error>> {
+    if !formats::is_valid_key(format) {
+        return Err(format!(
+            "unknown format: {format} (see `waybar-unixtime formats`)",
+        )
+        .into());
+    }
+    state::set_format(format)?;
+    eprintln!("display format: {format}");
+    Ok(())
+}
+
+fn list_formats() -> Result<(), Box<dyn Error>> {
+    let utc = Utc::now();
+    let local = utc.with_timezone(&Local);
+    let width = formats::SPECS
+        .iter()
+        .map(|spec| spec.key.len())
+        .max()
+        .unwrap_or(0);
+    let mut out = String::new();
+    for spec in formats::SPECS {
+        let value = formats::render(spec.key, utc, local).unwrap_or_default();
+        out.push_str(&format!(
+            "{:width$}  {}\n",
+            spec.key,
+            value,
+            width = width
+        ));
+    }
+    out.push_str(&format!(
+        "{:width$}  any strftime pattern\n",
+        "custom:<fmt>",
+        width = width
+    ));
+    print_all(&out)
+}
+
+fn menu_cmd(args: &InstallArgs) -> Result<(), Box<dyn Error>> {
+    write_or_print(args, "unixtime-menu.xml", &menu::xml())
+}
+
+fn css(args: &InstallArgs) -> Result<(), Box<dyn Error>> {
+    let stylesheet = theme::css(&theme::load());
+    write_or_print(args, "unixtime.css", &stylesheet)
+}
+
+fn snippet() -> Result<(), Box<dyn Error>> {
+    let binary = std::env::current_exe()
+        .map(|path| path.display().to_string())
+        .unwrap_or_else(|_| String::from("waybar-unixtime"));
+    print_all(&menu::snippet(&binary))
+}
+
+fn write_or_print(
+    args: &InstallArgs,
+    name: &str,
+    content: &str,
+) -> Result<(), Box<dyn Error>> {
+    if !args.install {
+        return print_all(content);
+    }
+    let target = waybar_dir()?.join(name);
     if let Some(parent) = target.parent() {
         fs::create_dir_all(parent)?;
     }
-    fs::write(&target, stylesheet)?;
+    fs::write(&target, content)?;
     eprintln!("wrote {}", target.display());
-    eprintln!("add to waybar style.css:  @import \"unixtime.css\";");
     Ok(())
 }
 
-fn css_target() -> Result<PathBuf, Box<dyn Error>> {
+fn waybar_dir() -> Result<PathBuf, Box<dyn Error>> {
     let home = std::env::var_os("HOME").ok_or("HOME is not set")?;
-    Ok(PathBuf::from(home).join(".config/waybar/unixtime.css"))
+    Ok(PathBuf::from(home).join(".config/waybar"))
 }

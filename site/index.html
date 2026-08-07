@@ -183,6 +183,31 @@ your omarchy theme. Open source, one tiny Rust binary.">
   .bar .ws b { color: var(--accent); font-weight: 700; }
   .bar .mod-tick { color: var(--accent); margin-left: auto; }
 
+  /* ── format panel ───────────────────────────────────────── */
+  .panel {
+    background: var(--surface); border: 1px solid var(--edge);
+    border-radius: 14px; padding: 10px 0; max-width: 560px;
+    box-shadow: 0 12px 40px rgb(0 0 0 / .35);
+  }
+  .panel .sect {
+    color: var(--dim); font-size: .68rem; letter-spacing: .18em;
+    text-align: center; padding: 10px 0 6px;
+  }
+  .panel .row {
+    display: flex; justify-content: space-between; gap: 16px;
+    padding: 7px 22px; cursor: pointer; font-size: .85rem;
+    border-left: 2px solid transparent;
+  }
+  .panel .row:hover {
+    background: var(--bg); border-left-color: var(--accent);
+  }
+  .panel .row .lbl { color: var(--fg); }
+  .panel .row .val {
+    color: var(--dim); font-variant-numeric: tabular-nums;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .panel .row.copied .val { color: var(--accent); }
+
   footer {
     border-top: 1px solid var(--edge); padding: 36px 0 56px;
     color: var(--dim); font-size: .8rem;
@@ -205,10 +230,11 @@ your omarchy theme. Open source, one tiny Rust binary.">
   </svg>
   <span class="name">waybar-unixtime</span>
   <nav aria-label="Main navigation">
+    <a href="#panel">formats</a>
     <a href="#install">install</a>
     <a href="#theming">theming</a>
     <a href="#convert">convert</a>
-    <a href="https://github.com/zackkitzmiller/waybar-unixtime">
+    <a href="https://github.com/z19r/waybar-unixtime">
       github</a>
   </nav>
 </header>
@@ -219,8 +245,9 @@ your omarchy theme. Open source, one tiny Rust binary.">
   <p class="prompt">$ waybar-unixtime</p>
   <h1 id="hero-heading">The current <em>unix timestamp</em>,
     ticking in your Waybar.</h1>
-  <p class="sub">A single Rust binary for Hyprland rice. Click to
-    copy, right-click for milliseconds, and it repaints itself from
+  <p class="sub">A single Rust binary for Hyprland rice. Click for
+    a dropdown of 15 formats — seconds to nanoseconds, ISO to
+    Japanese — each one copy-on-click. It repaints itself from
     whatever omarchy theme you're running.</p>
 
   <div class="epoch" id="epoch-card" title="Click to copy">
@@ -245,14 +272,14 @@ your omarchy theme. Open source, one tiny Rust binary.">
         tick. No shell, no date(1) forked every second.</p>
     </div>
     <div class="card">
-      <h3><span class="k">s ⇄ ms</span> at runtime</h3>
-      <p>Send SIGUSR1 (right-click) to flip between seconds and
-        milliseconds without restarting the bar.</p>
+      <h3><span class="k">dropdown</span> of every format</h3>
+      <p>Left-click opens a menu: s / ms / µs / ns, ISO 8601 ×3,
+        European, US, British, Japanese, RFC 2822. Click = copied.</p>
     </div>
     <div class="card">
-      <h3><span class="k">copy</span> on click</h3>
-      <p>waybar-unixtime copy | wl-copy puts the exact timestamp in
-        your clipboard, ready for logs and queries.</p>
+      <h3><span class="k">display</span> what you want</h3>
+      <p>Right-click toggles s ⇄ ms. waybar-unixtime set iso-utc —
+        or any custom strftime — changes the bar text itself.</p>
     </div>
     <div class="card">
       <h3><span class="k">omarchy</span>-native themes</h3>
@@ -261,8 +288,8 @@ your omarchy theme. Open source, one tiny Rust binary.">
     </div>
     <div class="card">
       <h3><span class="k">tooltip</span> that answers</h3>
-      <p>Epoch, UTC, local time, and ISO 8601 in one hover. Stop
-        alt-tabbing to a converter site.</p>
+      <p>Hover shows the whole panel — every format with its live
+        value. Stop alt-tabbing to a converter site.</p>
     </div>
     <div class="card">
       <h3><span class="k">tiny</span> and honest</h3>
@@ -270,6 +297,14 @@ your omarchy theme. Open source, one tiny Rust binary.">
         checksums. Read all of it in one sitting.</p>
     </div>
   </div>
+</section>
+
+<section id="panel" aria-labelledby="panel-heading">
+  <h2 id="panel-heading">the dropdown</h2>
+  <p class="sub" style="color:var(--dim);max-width:60ch">
+    This is the click menu, live. Every row is the real value right
+    now — click one to copy it.</p>
+  <div class="panel" id="fmt-panel" style="margin-top:24px"></div>
 </section>
 
 <section id="install" aria-labelledby="install-heading">
@@ -280,7 +315,7 @@ your omarchy theme. Open source, one tiny Rust binary.">
   <pre><button class="copy" data-copy-id="aur"
 >copy</button><span class="c"># arch, the honest way</span>
 <span class="a">git</span> clone \
-  https://github.com/zackkitzmiller/waybar-unixtime
+  https://github.com/z19r/waybar-unixtime
 <span class="a">cd</span> waybar-unixtime/packaging/aur
 <span class="a">makepkg</span> -si</pre>
   <pre><span class="c"># waybar config.jsonc</span>
@@ -457,8 +492,71 @@ THEMES.forEach((theme, index) => {
   group.appendChild(button);
 });
 
+/* ── live format panel ───────────────────────────────────── */
+const pad = (n, w) => String(n).padStart(w || 2, "0");
+const FORMATS = [
+  ["TIMESTAMP", null],
+  ["Seconds", (d) => Math.floor(d.getTime() / 1000)],
+  ["Milliseconds", (d) => d.getTime()],
+  ["Microseconds", (d) => d.getTime() + "000"],
+  ["Nanoseconds", (d) => d.getTime() + "000000"],
+  ["DATE FORMATS", null],
+  ["ISO 8601 UTC", (d) => d.toISOString().slice(0, 19) + "Z"],
+  ["ISO 8601 local", (d) =>
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    ` ${pad(d.getHours())}:${pad(d.getMinutes())}` +
+    `:${pad(d.getSeconds())}`],
+  ["ISO 8601 date", (d) =>
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`],
+  ["European", (d) =>
+    `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}` +
+    ` ${pad(d.getHours())}:${pad(d.getMinutes())}` +
+    `:${pad(d.getSeconds())}`],
+  ["US", (d) => d.toLocaleString("en-US")],
+  ["British", (d) => d.toLocaleString("en-GB")],
+  ["Japanese", (d) =>
+    `${d.getFullYear()}年${pad(d.getMonth() + 1)}月` +
+    `${pad(d.getDate())}日 ${pad(d.getHours())}時` +
+    `${pad(d.getMinutes())}分`],
+  ["RFC 2822", (d) => d.toUTCString()],
+];
+
+const panel = document.getElementById("fmt-panel");
+const liveRows = [];
+FORMATS.forEach(([label, fn]) => {
+  if (!fn) {
+    const sect = document.createElement("div");
+    sect.className = "sect";
+    sect.textContent = `── ${label} ──`;
+    panel.appendChild(sect);
+    return;
+  }
+  const row = document.createElement("div");
+  row.className = "row";
+  const lbl = document.createElement("span");
+  lbl.className = "lbl";
+  lbl.textContent = label;
+  const val = document.createElement("span");
+  val.className = "val";
+  row.append(lbl, val);
+  row.addEventListener("click", () => {
+    navigator.clipboard.writeText(val.textContent).then(() => {
+      row.classList.add("copied");
+      setTimeout(() => row.classList.remove("copied"), 900);
+    });
+  });
+  panel.appendChild(row);
+  liveRows.push([fn, val]);
+});
+setInterval(() => {
+  const d = new Date();
+  liveRows.forEach(([fn, val]) => {
+    val.textContent = String(fn(d));
+  });
+}, 250);
+
 /* ── copy buttons ────────────────────────────────────────── */
-const REPO = "https://github.com/zackkitzmiller/waybar-unixtime";
+const REPO = "https://github.com/z19r/waybar-unixtime";
 const SNIPPETS = {
   aur: "git clone " + REPO +
     " && cd waybar-unixtime/packaging/aur && makepkg -si",

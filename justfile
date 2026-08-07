@@ -43,10 +43,11 @@ lint:
 # fmt-check + lint + test (CI parity)
 check: fmt-check lint test
 
-# Install to ~/.cargo/bin and generate themed CSS
+# Install to ~/.cargo/bin, generate themed CSS + dropdown menu
 install:
     cargo install --path . --locked
     waybar-unixtime css --install
+    waybar-unixtime menu --install
 
 # Regenerate themed CSS from the active omarchy theme
 css:

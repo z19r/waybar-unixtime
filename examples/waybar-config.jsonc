@@ -1,14 +1,44 @@
 // Drop into your waybar config's module section.
+// Generate this exact block (with your paths) via:
+//   waybar-unixtime snippet
 {
   "custom/unixtime": {
-    // Continuous mode: the binary streams one JSON line per tick.
-    "exec": "waybar-unixtime",
+    // Polling mode: waybar 0.15.0 fails to render bars that use
+    // continuous streaming custom modules, so poll once a second.
+    "exec": "waybar-unixtime once",
+    "interval": 1,
+    // `signal: 8` lets format changes repaint instantly via
+    // `pkill -RTMIN+8 waybar`.
+    "signal": 8,
     "return-type": "json",
-    "restart-interval": 1,
-    // Click: copy the current timestamp to the clipboard.
-    "on-click": "waybar-unixtime copy | wl-copy",
-    // Right-click: toggle seconds <-> milliseconds live.
-    "on-click-right": "pkill -USR1 -x waybar-unixtime",
+    // Left-click opens the format dropdown; each entry copies
+    // that format to the clipboard.
+    "menu": "on-click",
+    "menu-file": "$HOME/.config/waybar/unixtime-menu.xml",
+    "menu-actions": {
+      "seconds": "waybar-unixtime copy seconds | wl-copy",
+      "millis": "waybar-unixtime copy millis | wl-copy",
+      "micros": "waybar-unixtime copy micros | wl-copy",
+      "nanos": "waybar-unixtime copy nanos | wl-copy",
+      "iso-utc": "waybar-unixtime copy iso-utc | wl-copy",
+      "iso-local": "waybar-unixtime copy iso-local | wl-copy",
+      "iso-date": "waybar-unixtime copy iso-date | wl-copy",
+      "european": "waybar-unixtime copy european | wl-copy",
+      "european-short":
+        "waybar-unixtime copy european-short | wl-copy",
+      "us": "waybar-unixtime copy us | wl-copy",
+      "us-short": "waybar-unixtime copy us-short | wl-copy",
+      "british": "waybar-unixtime copy british | wl-copy",
+      "japanese": "waybar-unixtime copy japanese | wl-copy",
+      "rfc2822": "waybar-unixtime copy rfc2822 | wl-copy",
+      "unix-readable":
+        "waybar-unixtime copy unix-readable | wl-copy"
+    },
+    // Right-click: toggle bar text seconds <-> milliseconds.
+    "on-click-right":
+      "waybar-unixtime toggle && pkill -RTMIN+8 waybar",
+    // Middle-click: copy whatever the bar currently shows.
+    "on-click-middle": "waybar-unixtime copy | wl-copy",
     "tooltip": true
   }
 }

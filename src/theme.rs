@@ -88,7 +88,10 @@ pub fn css(palette: &Palette) -> String {
         \x20 font-family: monospace;\n\
         }}\n\
         \n\
-        #custom-unixtime.millis {{\n\
+        #custom-unixtime.millis,\n\
+        #custom-unixtime.micros,\n\
+        #custom-unixtime.nanos,\n\
+        #custom-unixtime.custom {{\n\
         \x20 color: @unixtime-accent;\n\
         }}\n\
         \n\
@@ -138,7 +141,7 @@ color0 = "#000000"
         let out = css(&Palette::default());
         assert!(out.contains("@define-color unixtime-accent #c9a554;"));
         assert!(out.contains("#custom-unixtime {"));
-        assert!(out.contains("#custom-unixtime.millis {"));
+        assert!(out.contains("#custom-unixtime.millis,"));
     }
 
     #[test]
