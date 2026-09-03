@@ -35,6 +35,9 @@ pub fn theme_dir() -> Option<PathBuf> {
 /// Load the palette from the active omarchy theme, falling back to
 /// the built-in default palette when the theme cannot be read.
 pub fn load() -> Palette {
+    theme_dir()
+        .and_then(|dir| fs::read_to_string(dir.join("colors.toml")).ok())
+        .and_then(|text| parse(&text))
         .unwrap_or_default()
 }
 
@@ -44,10 +47,9 @@ pub fn parse(text: &str) -> Option<Palette> {
     let defaults = Palette::default();
     let get = |key: &str, fallback: &str| -> String {
         value
+            .get(key)
             .and_then(|v| v.as_str())
             .map(normalize)
-            .unwrap_or_else(|| fallback.to_string())
-    };            .map(normalize)
             .unwrap_or_else(|| fallback.to_string())
     };
     Some(Palette {
@@ -58,8 +60,7 @@ pub fn parse(text: &str) -> Option<Palette> {
 }
 
 fn normalize(color: &str) -> String {
-    let trimmed = color.trim();
-    if trimmed.starts_with('#') {
+    let trimmed = color.trim();    if trimmed.starts_with('#') {
         trimmed.to_string()
     } else {
         format!("#{trimmed}")
