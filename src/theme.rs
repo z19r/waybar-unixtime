@@ -43,7 +43,7 @@ pub fn load() -> Palette {
 
 /// Parse an omarchy `colors.toml`, tolerating missing keys.
 pub fn parse(text: &str) -> Option<Palette> {
-    let value: toml::Value = text.parse().ok()?;
+    let value: toml::Value = toml::from_str(text).ok()?;
     let defaults = Palette::default();
     let get = |key: &str, fallback: &str| -> String {
         value
@@ -60,8 +60,7 @@ pub fn parse(text: &str) -> Option<Palette> {
 }
 
 fn normalize(color: &str) -> String {
-    let trimmed = color.trim();
-    if trimmed.starts_with('#') {
+    let trimmed = color.trim();    if trimmed.starts_with('#') {
         trimmed.to_string()
     } else {
         format!("#{trimmed}")
