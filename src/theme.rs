@@ -35,20 +35,19 @@ pub fn theme_dir() -> Option<PathBuf> {
 /// Load the palette from the active omarchy theme, falling back to
 /// the built-in default palette when the theme cannot be read.
 pub fn load() -> Palette {
-    theme_dir()
-        .and_then(|dir| fs::read_to_string(dir.join("colors.toml")).ok())
-        .and_then(|text| parse(&text))
         .unwrap_or_default()
 }
-
 
 /// Parse an omarchy `colors.toml`, tolerating missing keys.
 pub fn parse(text: &str) -> Option<Palette> {
     let value: toml::Value = toml::from_str(text).ok()?;
     let defaults = Palette::default();
     let get = |key: &str, fallback: &str| -> String {
-        value            .and_then(|v| v.as_str())
+        value
+            .and_then(|v| v.as_str())
             .map(normalize)
+            .unwrap_or_else(|| fallback.to_string())
+    };            .map(normalize)
             .unwrap_or_else(|| fallback.to_string())
     };
     Some(Palette {
