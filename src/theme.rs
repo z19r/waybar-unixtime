@@ -41,14 +41,13 @@ pub fn load() -> Palette {
         .unwrap_or_default()
 }
 
+
 /// Parse an omarchy `colors.toml`, tolerating missing keys.
 pub fn parse(text: &str) -> Option<Palette> {
-    let value: toml::Value = text.parse().ok()?;
+    let value: toml::Value = toml::from_str(text).ok()?;
     let defaults = Palette::default();
     let get = |key: &str, fallback: &str| -> String {
-        value
-            .get(key)
-            .and_then(|v| v.as_str())
+        value            .and_then(|v| v.as_str())
             .map(normalize)
             .unwrap_or_else(|| fallback.to_string())
     };
