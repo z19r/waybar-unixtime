@@ -54,13 +54,14 @@ pub fn parse(text: &str) -> Option<Palette> {
     };
     Some(Palette {
         accent: get("accent", &defaults.accent),
-        foreground: get("foreground", &defaults.foreground),
-        background: get("background", &defaults.background),
-    })
 }
 
 fn normalize(color: &str) -> String {
-    let trimmed = color.trim();    if trimmed.starts_with('#') {
+    let trimmed = color.trim();
+    if trimmed.starts_with('#') {
+        trimmed.to_string()
+    } else {
+        format!("#{trimmed}")
         trimmed.to_string()
     } else {
         format!("#{trimmed}")
