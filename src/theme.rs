@@ -60,7 +60,8 @@ pub fn parse(text: &str) -> Option<Palette> {
 }
 
 fn normalize(color: &str) -> String {
-    let trimmed = color.trim();    if trimmed.starts_with('#') {
+    let trimmed = color.trim();
+    if trimmed.starts_with('#') {
         trimmed.to_string()
     } else {
         format!("#{trimmed}")
